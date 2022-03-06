@@ -1,7 +1,7 @@
 pragma circom 2.0.3;
 include "../../node_modules/circomlib/circuits/poseidon.circom";
 
-template Nullifier(MerkleTreeDepth) {
+template Nullifier() {
   signal input leafIndex;
   signal input nullifyingKey;
 
