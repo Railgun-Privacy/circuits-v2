@@ -1,11 +1,11 @@
 pragma circom 2.0.3;
 include "../../node_modules/circomlib/circuits/bitify.circom";
-include "../../node_modules/circomlib/circuits/pointbits.circom";
+include "./utils.circom";
 
 template Extractor() {
-  signal input pubY;
+  signal input yPublicKey;
   // in is 248-bits field in Note 
-  // in[0] is the sign of pubY
+  // in[0] is the sign of yPublicKey
   // in[1-128] is a 128-bit randomness
   // in[129-248] is a 120-bit value
   signal input in; 
@@ -17,7 +17,7 @@ template Extractor() {
   n2b.in <== in;
 
   component unpackPoint = UnpackPoint();
-  unpackPoint.y <== pubY;
+  unpackPoint.y <== yPublicKey;
   unpackPoint.sign <== n2b.out[0];
   publicKey[0] <== unpackPoint.out[0];
   publicKey[1] <== unpackPoint.out[1];
@@ -39,24 +39,3 @@ template Extractor() {
   value <== b2nValue.out;
 }
 
-template UnpackPoint(){
-    signal input y;
-    signal input sign;
-
-    signal output out[2];
-
-    component n2bY = Num2Bits(254);
-    n2bY.in <== y;
-
-    component b2Point = Bits2Point_Strict();
-
-    for (var i = 0; i < 254; i++) {
-        b2Point.in[i] <== n2bY.out[i];
-    }
-
-    b2Point.in[254] <== 0;
-    b2Point.in[255] <== sign;
-
-    out[0] <== b2Point.out[0];
-    out[1] <== b2Point.out[1];
-}
