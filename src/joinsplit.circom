@@ -132,5 +132,3 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     // 8. Verify balance property
     sumIn === sumOut;
 }
-
-component main{public [hashOfPublicInput]} = JoinSplit(1,2,16);
