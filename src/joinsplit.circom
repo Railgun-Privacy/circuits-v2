@@ -9,18 +9,28 @@ include "./library/merkle-proof-verifier.circom";
 include "./library/range-check.circom";
 
 template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
+
+    // MPK: Master public key, a field used in the notes commitment
+    // VPK: EDDSA Signature verification public key
+    // nk: nullifying key is a private scalar
+    // MPK = VPK^{nk}
+    // Note.hash = Poseidon(MPK, packed, token)
+    // Note.nullifier = Poseidon(note's index in the Merkle tree, nullifigyKey, random)
+    // packed is 249-bits signal that consists of (random, value, sign) at locations (0-127, 128-247, 248)
+    // token is 254-bits signal of the asset (ERC20 address padded with zeroes or NFT globally unique identifier)
+
     // The only public signal which is used to reduce verification cost
     signal input hashOfPublicInput;
     
     // All following signals are private
     signal input boundParamsHash;
     signal input token;
-    // Public key for signature verification
+    // Public key for signature verification denoted to as SPK
 	signal input publicKey[2];
     // EDDSA signature (R, s) where R is a point (x,y) and s is a scalar
 	signal input signature_R[2];
     signal input signature_S;
-    // packedIn is 249-bits (sign, random, value) at locations (0, 1-128,129-248)
+    // Packed input field is 249-bits (random, value, sign) at locations (0-127, 128-247, 248)
     signal input packedIn[nInputs];
 
     // Merkle proofs of membership signals
@@ -28,13 +38,15 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     signal input pathElements[nInputs][MerkleTreeDepth];
     signal input leavesIndices[nInputs];
 
-    // Nullifiers 
+    // NullifyingKey is a private scalar denoted to as snk
     signal input nullifyingKey;
+    // Nullifiers for input notes
     signal input nullifiers[nInputs];
 
-    // Recipients' master public key (coordinate y)
+    // Recipients' master public key denoted to as MPK
+    // to is the y coordinate of MPK for each output
     signal input to[nOutputs]; 
-    // packedOut is 249-bits (sign, random, value) at locations (0, 1-128,129-248)
+    // Packed output field is 249-bits (random, value, sign) at locations (0-127, 128-247, 248)
     signal input packedOut[nOutputs];
     // hash of output notes
     signal input commitmentsOut[nOutputs];
@@ -60,7 +72,7 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     publicInputHash.boundParamsHash <== boundParamsHash;
     publicInputHash.out === hashOfPublicInput;
 
-    // 2. Verify EDDSA signature
+    // 2. Verify EDDSA signature over hash of public inputs
     component eddsaVerifier = EdDSAPoseidonVerifier();
     eddsaVerifier.enabled <== 1;
     eddsaVerifier.Ax <== publicKey[0];
@@ -122,6 +134,7 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
         outExtractor[i].in <== packedOut[i];
         rangeCheck.value[i] <== outExtractor[i].value;
         sumOut = sumOut + outExtractor[i].value;
+
         // 7. Verify output commitments
         outNoteHash[i] = NoteHash();
         outNoteHash[i].yPublicKey <== to[i];
@@ -129,6 +142,7 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
         outNoteHash[i].token <== token;
         outNoteHash[i].hash === commitmentsOut[i];
     }
+
     // 8. Verify balance property
     sumIn === sumOut;
 }
