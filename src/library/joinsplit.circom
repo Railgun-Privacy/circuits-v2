@@ -1,12 +1,12 @@
 pragma circom 2.0.3;
-include "../node_modules/circomlib/circuits/eddsaposeidon.circom";
-include "./library/public-input-hash.circom";
-include "./library/nullifiers-check.circom";
-include "./library/note-hash.circom";
-include "./library/utils.circom";
-include "./library/extractor.circom";
-include "./library/merkle-proof-verifier.circom";
-include "./library/range-check.circom";
+include "../../node_modules/circomlib/circuits/eddsaposeidon.circom";
+include "./public-input-hash.circom";
+include "./nullifiers-check.circom";
+include "./note-hash.circom";
+include "./utils.circom";
+include "./extractor.circom";
+include "./merkle-proof-verifier.circom";
+include "./range-check.circom";
 
 template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
 
@@ -19,39 +19,37 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     // packed is 249-bits signal that consists of (random, value, sign) at locations (0-127, 128-247, 248)
     // token is 254-bits signal of the asset (ERC20 address padded with zeroes or NFT globally unique identifier)
 
-    // The only public signal which is used to reduce verification cost
-    signal input hashOfPublicInput;
-    
-    // All following signals are private
+    //********************** Public Signals *********************************
+    // Merkle proofs of membership signals
+    signal input merkleRoot;
+    // hash of ciphertext and adapterParameters
     signal input boundParamsHash;
+    // Nullifiers for input notes
+    signal input nullifiers[nInputs];
+    // hash of output notes
+    signal input commitmentsOut[nOutputs];
+    //***********************************************************************
+
+    //********************** Private Signals ********************************
     signal input token;
     // Public key for signature verification denoted to as SPK
 	signal input publicKey[2];
     // EDDSA signature (R, s) where R is a point (x,y) and s is a scalar
-	signal input signature_R[2];
-    signal input signature_S;
+	signal input signature[3];
     // Packed input field is 249-bits (random, value, sign) at locations (0-127, 128-247, 248)
     signal input packedIn[nInputs];
-
-    // Merkle proofs of membership signals
-    signal input merkleRoot;
+    // Merkle proofs of membership 
     signal input pathElements[nInputs][MerkleTreeDepth];
     signal input leavesIndices[nInputs];
-
     // NullifyingKey is a private scalar denoted to as snk
     signal input nullifyingKey;
-    // Nullifiers for input notes
-    signal input nullifiers[nInputs];
-
-    // Recipients' master public key denoted to as MPK
-    // to is the y coordinate of MPK for each output
+    // Recipients' MPK (y coordinate)
     signal input to[nOutputs]; 
     // Packed output field is 249-bits (random, value, sign) at locations (0-127, 128-247, 248)
     signal input packedOut[nOutputs];
-    // hash of output notes
-    signal input commitmentsOut[nOutputs];
+    //***********************************************************************    
 
-    // 1. Verifiy hash of public input
+    // 1. Compute hash over public signals to get the signed message
     // 2. Verify EDDSA signature
     // 3. Verify nullifiers
     // 4. Compute master public key
@@ -60,27 +58,27 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     // 7. Verify output commitments
     // 8. Verify balance property
 
-    // 1. Verify hash of public input
-    component publicInputHash = PublicInputHash(nInputs, nOutputs);
-    publicInputHash.merkleRoot <== merkleRoot;
+    component messageHash = PublicInputHash(nInputs, nOutputs);
+    messageHash.merkleRoot <== merkleRoot;
+    messageHash.boundParamsHash <== boundParamsHash;
+    var offset = 2;
     for(var i=0; i<nInputs; i++) {
-        publicInputHash.nullifiers[i] <== nullifiers[i];
-	}
+        messageHash.nullifiers[i] <== nullifiers[i];
+    }
+    offset += nInputs;
     for(var i=0; i<nOutputs; i++) {
-        publicInputHash.commitmentsOut[i] <== commitmentsOut[i];
-	}
-    publicInputHash.boundParamsHash <== boundParamsHash;
-    publicInputHash.out === hashOfPublicInput;
+        messageHash.commitmentsOut[i] <== commitmentsOut[i];
+    }
 
     // 2. Verify EDDSA signature over hash of public inputs
     component eddsaVerifier = EdDSAPoseidonVerifier();
     eddsaVerifier.enabled <== 1;
     eddsaVerifier.Ax <== publicKey[0];
     eddsaVerifier.Ay <== publicKey[1];
-    eddsaVerifier.S <== signature_S;
-    eddsaVerifier.R8x <== signature_R[0];
-    eddsaVerifier.R8y <== signature_R[1];
-    eddsaVerifier.M <== hashOfPublicInput;
+    eddsaVerifier.R8x <== signature[0];
+    eddsaVerifier.R8y <== signature[1];
+    eddsaVerifier.S <== signature[2];
+    eddsaVerifier.M <== messageHash.out;
 
     // 3. Verify nullifiers
     component nullifiersCheck = NullifiersCheck(nInputs);
@@ -107,8 +105,8 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     var sumIn = 0;
     for(var i=0; i<nInputs; i++) {
         inNoteHash[i] = NoteHash();
-        inNoteHash[i].yPublicKey <== packedMPK.y;
-        inNoteHash[i].in <== packedIn[i];
+        inNoteHash[i].yMPK <== packedMPK.y;
+        inNoteHash[i].packed <== packedIn[i];
         inNoteHash[i].token <== token;
 
         merkleVerifier[i] = MerkleProofVerifier(MerkleTreeDepth);
@@ -137,8 +135,8 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
 
         // 7. Verify output commitments
         outNoteHash[i] = NoteHash();
-        outNoteHash[i].yPublicKey <== to[i];
-        outNoteHash[i].in <== packedOut[i];
+        outNoteHash[i].yMPK <== to[i];
+        outNoteHash[i].packed <== packedOut[i];
         outNoteHash[i].token <== token;
         outNoteHash[i].hash === commitmentsOut[i];
     }

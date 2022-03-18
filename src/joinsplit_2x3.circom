@@ -1,4 +1,4 @@
 pragma circom 2.0.3;
-include "./joinsplit.circom";
+include "./library/joinsplit.circom";
 
-component main{public [hashOfPublicInput]} = JoinSplit(2,3,16);
+component main{public [merkleRoot, boundParamsHash, nullifiers, commitmentsOut]} = JoinSplit(2,3,16);
