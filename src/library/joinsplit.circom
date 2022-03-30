@@ -1,51 +1,27 @@
 pragma circom 2.0.3;
 include "../../node_modules/circomlib/circuits/eddsaposeidon.circom";
-include "./nullifiers-check.circom";
-include "./note-hash.circom";
-include "./utils.circom";
-include "./extractor.circom";
 include "./merkle-proof-verifier.circom";
-include "./range-check.circom";
 
 template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
 
-    // MPK: Master public key, a field used in the notes commitment
-    // VPK: EDDSA Signature verification public key
-    // nk: nullifying key is a private scalar
-    // MPK = VPK^{nk}
-    // Note.hash = Poseidon(MPK, packed, token)
-    // Note.nullifier = Poseidon(note's index in the Merkle tree, nullifigyKey, random)
-    // packed is 249-bits signal that consists of (random, value, sign) at locations (0-127, 128-247, 248)
-    // token is 254-bits signal of the asset (ERC20 address padded with zeroes or NFT globally unique identifier)
-
     //********************** Public Signals *********************************
-    // Merkle proofs of membership signals
-    signal input merkleRoot;
-    // hash of ciphertext and adapterParameters
-    signal input boundParamsHash;
-    // Nullifiers for input notes
-    signal input nullifiers[nInputs];
-    // hash of output notes
-    signal input commitmentsOut[nOutputs];
+    signal input merkleRoot; // Merkle proofs of membership signals
+    signal input boundParamsHash; // hash of ciphertext and adapterParameters
+    signal input nullifiers[nInputs]; // Nullifiers for input notes
+    signal input commitmentsOut[nOutputs]; // hash of output notes
     //***********************************************************************
 
     //********************** Private Signals ********************************
     signal input token;
-    // Public key for signature verification denoted to as SPK
-	signal input publicKey[2];
-    // EDDSA signature (R, s) where R is a point (x,y) and s is a scalar
-	signal input signature[3];
-    // Packed input field is 249-bits (random, value, sign) at locations (0-127, 128-247, 248)
-    signal input packedIn[nInputs];
-    // Merkle proofs of membership 
-    signal input pathElements[nInputs][MerkleTreeDepth];
+	signal input publicKey[2]; // Public key for signature verification denoted to as PK
+	signal input signature[3]; // EDDSA signature (R, s) where R is a point (x,y) and s is a scalar
+    signal input randomIn[nInputs];
+    signal input valueIn[nInputs];
+    signal input pathElements[nInputs][MerkleTreeDepth]; // Merkle proofs of membership 
     signal input leavesIndices[nInputs];
-    // NullifyingKey is a private scalar denoted to as snk
     signal input nullifyingKey;
-    // Recipients' MPK (y coordinate)
-    signal input to[nOutputs]; 
-    // Packed output field is 249-bits (random, value, sign) at locations (0-127, 128-247, 248)
-    signal input packedOut[nOutputs];
+    signal input npkOut[nOutputs]; // Recipients' NPK
+    signal input valueOut[nOutputs];
     //***********************************************************************    
 
     // 1. Compute hash over public signals to get the signed message
@@ -79,65 +55,64 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     eddsaVerifier.M <== messageHash.out;
 
     // 3. Verify nullifiers
-    component inExtractor[nInputs];
-    component nullifiersCheck = NullifiersCheck(nInputs);
-    nullifiersCheck.nullifyingKey <== nullifyingKey;
+    component nullifiersHash[nInputs];
     for(var i=0; i<nInputs; i++) {
-        inExtractor[i] = Extractor();
-        inExtractor[i].in <== packedIn[i];
-        nullifiersCheck.leavesIndices[i] <== leavesIndices[i];
-        nullifiersCheck.random[i] <== inExtractor[i].random;
-        nullifiersCheck.nullifiers[i] <== nullifiers[i];
+        nullifiersHash[i] = Poseidon(2);
+        nullifiersHash[i].inputs[0] <== nullifyingKey;
+        nullifiersHash[i].inputs[1] <== leavesIndices[i];
+        nullifiersHash[i].out === nullifiers[i];
     }
 
     // 4. Compute master public key
-    component mpk = ECMul();
-    mpk.point[0] <== publicKey[0];
-    mpk.point[1] <== publicKey[1];
-    mpk.scalar <== nullifyingKey;
-
-    component packedMPK = PackPoint();
-    packedMPK.in[0] <== mpk.out[0];
-    packedMPK.in[1] <== mpk.out[1];
+    component mpk = Poseidon(3);
+    mpk.inputs[0] <== publicKey[0];
+    mpk.inputs[1] <== publicKey[1];
+    mpk.inputs[2] <== nullifyingKey;
 
     // 5. Verify Merkle proofs of membership
-    component inNoteHash[nInputs];
+    component noteCommitmentsIn[nInputs];
+    component npkIn[nInputs]; // note public keys
     component merkleVerifier[nInputs];
     var sumIn = 0;
+
     for(var i=0; i<nInputs; i++) {
-        inNoteHash[i] = NoteHash();
-        inNoteHash[i].yMPK <== packedMPK.y;
-        inNoteHash[i].packed <== packedIn[i];
-        inNoteHash[i].token <== token;
+        // Compute NPK
+        npkIn[i] = Poseidon(2);
+        npkIn[i].inputs[0] <== mpk.out;
+        npkIn[i].inputs[1] <== randomIn[i];
+        // Compute note commitment
+        noteCommitmentsIn[i] = Poseidon(3);
+        noteCommitmentsIn[i].inputs[0] <== npkIn[i].out;
+        noteCommitmentsIn[i].inputs[1] <== token;
+        noteCommitmentsIn[i].inputs[2] <== valueIn[i];
 
         merkleVerifier[i] = MerkleProofVerifier(MerkleTreeDepth);
-        merkleVerifier[i].leaf <== inNoteHash[i].hash;
+        merkleVerifier[i].leaf <== noteCommitmentsIn[i].out;
         merkleVerifier[i].leafIndex <== leavesIndices[i];
         for(var j=0; j<MerkleTreeDepth; j++) {
             merkleVerifier[i].pathElements[j] <== pathElements[i][j];
         }
         merkleVerifier[i].merkleRoot === merkleRoot;
 
-        sumIn = sumIn + inExtractor[i].value;
+        sumIn = sumIn + valueIn[i];
     }
 
-    // 6. Verify output value is 120-bits
-    component outExtractor[nOutputs];
-    component rangeCheck = RangeCheck(nOutputs);
+    component n2b[nOutputs];
     component outNoteHash[nOutputs];
     var sumOut = 0;
     for(var i=0; i<nOutputs; i++){
-        outExtractor[i] = Extractor();
-        outExtractor[i].in <== packedOut[i];
-        rangeCheck.value[i] <== outExtractor[i].value;
-        sumOut = sumOut + outExtractor[i].value;
+        // 6. Verify output value is 120-bits
+        n2b[i] = Num2Bits(120);
+        n2b[i].in <== valueOut[i];
 
         // 7. Verify output commitments
-        outNoteHash[i] = NoteHash();
-        outNoteHash[i].yMPK <== to[i];
-        outNoteHash[i].packed <== packedOut[i];
-        outNoteHash[i].token <== token;
-        outNoteHash[i].hash === commitmentsOut[i];
+        outNoteHash[i] = Poseidon(3);
+        outNoteHash[i].inputs[0] <== npkOut[i];
+        outNoteHash[i].inputs[1] <== token;
+        outNoteHash[i].inputs[2] <== valueOut[i];
+        outNoteHash[i].out === commitmentsOut[i];
+
+        sumOut = sumOut + valueOut[i];
     }
 
     // 8. Verify balance property
