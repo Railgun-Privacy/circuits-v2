@@ -79,10 +79,14 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     eddsaVerifier.M <== messageHash.out;
 
     // 3. Verify nullifiers
+    component inExtractor[nInputs];
     component nullifiersCheck = NullifiersCheck(nInputs);
     nullifiersCheck.nullifyingKey <== nullifyingKey;
     for(var i=0; i<nInputs; i++) {
+        inExtractor[i] = Extractor();
+        inExtractor[i].in <== packedIn[i];
         nullifiersCheck.leavesIndices[i] <== leavesIndices[i];
+        nullifiersCheck.random[i] <== inExtractor[i].random;
         nullifiersCheck.nullifiers[i] <== nullifiers[i];
     }
 
@@ -99,7 +103,6 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     // 5. Verify Merkle proofs of membership
     component inNoteHash[nInputs];
     component merkleVerifier[nInputs];
-    component inExtractor[nInputs];
     var sumIn = 0;
     for(var i=0; i<nInputs; i++) {
         inNoteHash[i] = NoteHash();
@@ -115,8 +118,6 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
         }
         merkleVerifier[i].merkleRoot === merkleRoot;
 
-        inExtractor[i] = Extractor();
-        inExtractor[i].in <== packedIn[i];
         sumIn = sumIn + inExtractor[i].value;
     }
 
