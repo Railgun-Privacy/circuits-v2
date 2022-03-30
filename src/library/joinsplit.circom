@@ -1,6 +1,5 @@
 pragma circom 2.0.3;
 include "../../node_modules/circomlib/circuits/eddsaposeidon.circom";
-include "./public-input-hash.circom";
 include "./nullifiers-check.circom";
 include "./note-hash.circom";
 include "./utils.circom";
@@ -58,14 +57,15 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     // 7. Verify output commitments
     // 8. Verify balance property
 
-    component messageHash = PublicInputHash(nInputs, nOutputs);
-    messageHash.merkleRoot <== merkleRoot;
-    messageHash.boundParamsHash <== boundParamsHash;
+    var size = nInputs + nOutputs + 2;
+    component messageHash = Poseidon(size);
+    messageHash.inputs[0] <== merkleRoot;
+    messageHash.inputs[1] <== boundParamsHash;
     for(var i=0; i<nInputs; i++) {
-        messageHash.nullifiers[i] <== nullifiers[i];
+        messageHash.inputs[i+2] <== nullifiers[i];
     }
     for(var i=0; i<nOutputs; i++) {
-        messageHash.commitmentsOut[i] <== commitmentsOut[i];
+        messageHash.inputs[i+2+nInputs] <== commitmentsOut[i];
     }
 
     // 2. Verify EDDSA signature over hash of public inputs
