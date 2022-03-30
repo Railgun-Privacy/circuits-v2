@@ -61,11 +61,9 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     component messageHash = PublicInputHash(nInputs, nOutputs);
     messageHash.merkleRoot <== merkleRoot;
     messageHash.boundParamsHash <== boundParamsHash;
-    var offset = 2;
     for(var i=0; i<nInputs; i++) {
         messageHash.nullifiers[i] <== nullifiers[i];
     }
-    offset += nInputs;
     for(var i=0; i<nOutputs; i++) {
         messageHash.commitmentsOut[i] <== commitmentsOut[i];
     }
