@@ -4,6 +4,6 @@
   "version": "0.0.1",
   "description": "ZK-SNARK circuits for RAILGUN",
   "dependencies": {
-      "circomlib": "^2.0.3"
+    "circomlib": "2.0.3"
   }
 }
