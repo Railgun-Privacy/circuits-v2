@@ -3,7 +3,37 @@
   "name": "circuits-v2",
   "version": "0.0.1",
   "description": "ZK-SNARK circuits for RAILGUN",
+  "scripts": {
+    "clean": "rm -fR dist",
+    "build": "npm run clean && ./node_modules/.bin/tsc --strictNullChecks",
+    "lint": "npx eslint  test/*.ts --fix",
+    "test": "npm run lint &&  mocha --exit --timeout 30000 --require ts-node/register 'test/**/*.test.ts'"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.0",
+    "@types/chai-as-promised": "^7.1.5",
+    "@types/mocha": "^9.1.0",
+    "@types/node": "^17.0.12",
+    "@typescript-eslint/eslint-plugin": "^5.10.1",
+    "@typescript-eslint/parser": "^5.10.1",
+    "chai": "^4.3.6",
+    "chai-as-promised": "^7.1.1",
+    "circom_tester": "^0.0.9",
+    "circomlib": "^2.0.3",
+    "eslint": "^8.7.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-tsdoc": "^0.2.14",
+    "mocha": "^9.2.0",
+    "ts-node": "^10.4.0",
+    "typedoc": "^0.22.11",
+    "typescript": "^4.5.5"
+  },
   "dependencies": {
-    "circomlib": "2.0.3"
+    "circomlibjs": "^0.1.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "ethereum-cryptography": "^1.0.0",
+    "ffjavascript": "^0.2.48",
+    "snarkjs": "^0.4.12"
   }
 }
