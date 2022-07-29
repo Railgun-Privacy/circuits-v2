@@ -1,6 +1,7 @@
 pragma circom 2.0.3;
 include "../../node_modules/circomlib/circuits/eddsaposeidon.circom";
 include "./merkle-proof-verifier.circom";
+include "./nullifier-check.circom";
 
 template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
 
@@ -54,13 +55,21 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     eddsaVerifier.S <== signature[2];
     eddsaVerifier.M <== messageHash.out;
 
+    // 3. Check dummy inputs (i.e., with zero value)
+    component isDummy[nInputs];
+    for(var i=0; i<nInputs; i++) {
+        isDummy[i] = IsZero();
+        isDummy[i].in <== valueIn[i];
+    }
+
     // 3. Verify nullifiers
     component nullifiersHash[nInputs];
     for(var i=0; i<nInputs; i++) {
-        nullifiersHash[i] = Poseidon(2);
-        nullifiersHash[i].inputs[0] <== nullifyingKey;
-        nullifiersHash[i].inputs[1] <== leavesIndices[i];
-        nullifiersHash[i].out === nullifiers[i];
+        nullifiersHash[i] = NullifierCheck();
+        nullifiersHash[i].nullifyingKey <== nullifyingKey;
+        nullifiersHash[i].leafIndex <== leavesIndices[i];
+        nullifiersHash[i].nullifier <== nullifiers[i];
+        nullifiersHash[i].enabled <== 1-isDummy[i].out;
     }
 
     // 4. Compute master public key
@@ -92,7 +101,8 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
         for(var j=0; j<MerkleTreeDepth; j++) {
             merkleVerifier[i].pathElements[j] <== pathElements[i][j];
         }
-        merkleVerifier[i].merkleRoot === merkleRoot;
+        merkleVerifier[i].merkleRoot <== merkleRoot;
+        merkleVerifier[i].enabled <== 1 - isDummy[i].out;
 
         sumIn = sumIn + valueIn[i];
     }
