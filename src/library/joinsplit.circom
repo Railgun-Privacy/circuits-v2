@@ -1,4 +1,4 @@
-pragma circom 2.0.3;
+pragma circom 2.0.6;
 include "../../node_modules/circomlib/circuits/eddsaposeidon.circom";
 include "./merkle-proof-verifier.circom";
 include "./nullifier-check.circom";

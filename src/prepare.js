@@ -2,7 +2,7 @@
 const fs = require('fs');
 
 function template(nInputs, nOutputs) {
-  return `pragma circom 2.0.3;
+  return `pragma circom 2.0.6;
 include "./library/joinsplit.circom";
 
 component main{public [merkleRoot, boundParamsHash, nullifiers, commitmentsOut]} = JoinSplit(${nInputs}, ${nOutputs},16);`;
