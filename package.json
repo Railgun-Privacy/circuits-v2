@@ -11,6 +11,6 @@
     "mocha": "^9.2.0"
   },
   "dependencies": {
-    "circomlib": "^2.0.5"
+    "circomlib": "2.0.5"
   }
 }
