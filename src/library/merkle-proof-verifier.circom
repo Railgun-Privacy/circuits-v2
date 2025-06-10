@@ -9,7 +9,6 @@ template MerkleProofVerifier(MerkleTreeDepth) {
     signal input leafIndex; 
     signal input pathElements[MerkleTreeDepth];
     signal input merkleRoot;
-    signal input enabled;
 
     component hashers[MerkleTreeDepth];
     component switchers[MerkleTreeDepth];
@@ -32,8 +31,8 @@ template MerkleProofVerifier(MerkleTreeDepth) {
         levelHash = hashers[i].out;
     }
     
-    component isEqual = ForceEqualIfEnabled();
-    isEqual.enabled <== enabled;
+    component isEqual = IsEqual();
     isEqual.in[0] <== merkleRoot;
     isEqual.in[1] <== levelHash;
+    isEqual.out === 1;
 }

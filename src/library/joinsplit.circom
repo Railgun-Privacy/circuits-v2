@@ -55,13 +55,6 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
     eddsaVerifier.S <== signature[2];
     eddsaVerifier.M <== messageHash.out;
 
-    // 3. Check dummy inputs (i.e., with zero value)
-    component isDummy[nInputs];
-    for(var i=0; i<nInputs; i++) {
-        isDummy[i] = IsZero();
-        isDummy[i].in <== valueIn[i];
-    }
-
     // 3. Verify nullifiers
     component nullifiersHash[nInputs];
     for(var i=0; i<nInputs; i++) {
@@ -69,7 +62,6 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
         nullifiersHash[i].nullifyingKey <== nullifyingKey;
         nullifiersHash[i].leafIndex <== leavesIndices[i];
         nullifiersHash[i].nullifier <== nullifiers[i];
-        nullifiersHash[i].enabled <== 1-isDummy[i].out;
     }
 
     // 4. Compute master public key
@@ -102,8 +94,6 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
             merkleVerifier[i].pathElements[j] <== pathElements[i][j];
         }
         merkleVerifier[i].merkleRoot <== merkleRoot;
-        merkleVerifier[i].enabled <== 1 - isDummy[i].out;
-
         sumIn = sumIn + valueIn[i];
     }
 

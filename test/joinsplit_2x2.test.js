@@ -1,11 +1,12 @@
 const tester = require('circom_tester').wasm;
+const assert = require('assert');
 
 describe('Joinsplit 1x2', async () => {
-  it('Should verify correctness with dummy input', async () => {
+  it('Should fail correctness with dummy input', async () => {
     const circuit = await tester('./src/joinsplit_2x2.circom', { reduceConstraints: false });
 
     // fix the hash and signature
-    
+
     const inputs = {
       merkleRoot: 6222425295742392060788226778694769114506305024317843914902643617290374768963n,
       boundParamsHash: 5710287756984354871128133611023121898130345951914076394217910154190632022267n,
@@ -72,7 +73,6 @@ describe('Joinsplit 1x2', async () => {
       valueOut: [65000000000000000000n, 9910062344139650872817n]
     }
 
-    const witness = await circuit.calculateWitness(inputs);
-    await circuit.checkConstraints(witness);
+    await assert.rejects(circuit.calculateWitness(inputs))
   });
 });
