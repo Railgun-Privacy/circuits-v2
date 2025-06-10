@@ -6,7 +6,7 @@ include "../../node_modules/circomlib/circuits/comparators.circom";
 
 template MerkleProofVerifier(MerkleTreeDepth) {
     signal input leaf;
-    signal input leafIndex; 
+    signal input leafIndex;
     signal input pathElements[MerkleTreeDepth];
     signal input merkleRoot;
 
@@ -30,7 +30,7 @@ template MerkleProofVerifier(MerkleTreeDepth) {
         hashers[i].inputs[1] <== switchers[i].outR;
         levelHash = hashers[i].out;
     }
-    
+
     component isEqual = IsEqual();
     isEqual.in[0] <== merkleRoot;
     isEqual.in[1] <== levelHash;

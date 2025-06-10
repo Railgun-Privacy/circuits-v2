@@ -14,16 +14,16 @@ template JoinSplit(nInputs, nOutputs, MerkleTreeDepth) {
 
     //********************** Private Signals ********************************
     signal input token;
-	signal input publicKey[2]; // Public key for signature verification denoted to as PK
-	signal input signature[3]; // EDDSA signature (R, s) where R is a point (x,y) and s is a scalar
+    signal input publicKey[2]; // Public key for signature verification denoted to as PK
+    signal input signature[3]; // EDDSA signature (R, s) where R is a point (x,y) and s is a scalar
     signal input randomIn[nInputs];
     signal input valueIn[nInputs];
-    signal input pathElements[nInputs][MerkleTreeDepth]; // Merkle proofs of membership 
+    signal input pathElements[nInputs][MerkleTreeDepth]; // Merkle proofs of membership
     signal input leavesIndices[nInputs];
     signal input nullifyingKey;
     signal input npkOut[nOutputs]; // Recipients' NPK
     signal input valueOut[nOutputs];
-    //***********************************************************************    
+    //***********************************************************************
 
     // 1. Compute hash over public signals to get the signed message
     // 2. Verify EDDSA signature
