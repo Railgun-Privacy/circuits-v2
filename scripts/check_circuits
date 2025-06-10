@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+INSTALL_DIR="./bin"
+CIRCOM_BIN="$INSTALL_DIR/circom"
+
+SRC_DIR="./src"
+
+# Loop through all .circom files in the current directory
+for file in "$SRC_DIR"/*.circom; do
+  echo "Checking $file..."
+  # Run circom command with the current file
+  "$CIRCOM_BIN" "$file"
+
+  # Check if the command succeeded
+  # FIXME: circom 2.0.6 does not actually set the exit code correctly
+  if [[ $? -eq 0 ]]; then
+    echo "Successfully compiled $file"
+  else
+    echo "Failed to compile $file" >&2
+  fi
+done

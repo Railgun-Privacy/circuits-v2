@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+INSTALL_DIR="./bin"
+CIRCOM_BIN="$INSTALL_DIR/circom"
+
+SRC_DIR="./src"
+DST_DIR="./build"
+
+mkdir -p "$DST_DIR"
+
+# Loop through all .circom files in the current directory
+for file in "$SRC_DIR"/*.circom; do
+  echo "Compiling $file..."
+  # Run circom command with the current file
+  "$CIRCOM_BIN" \
+    --r1cs \
+    --sym \
+    --json \
+    --wasm --wat \
+    --c \
+    "$file" -o "$DST_DIR"
+done

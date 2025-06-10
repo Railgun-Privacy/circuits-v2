@@ -1,4 +1,5 @@
 node_modules
-package-lock*
+package-lock.json
 build
+bin
 *.ptau

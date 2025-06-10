@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION="2.0.6"
+INSTALL_DIR="./bin"
+CIRCOM_BIN="$INSTALL_DIR/circom"
+
+mkdir -p "$INSTALL_DIR"
+
+OS="$(uname -s)"
+
+case "$OS" in
+  Linux)
+    URL="https://github.com/iden3/circom/releases/download/v${VERSION}/circom-linux-amd64"
+    ;;
+  Darwin)
+    URL="https://github.com/iden3/circom/releases/download/v${VERSION}/circom-macos-amd64"
+    ;;
+  MINGW*|MSYS*|CYGWIN*)
+    URL="https://github.com/iden3/circom/releases/download/v${VERSION}/circom-windows-amd64.exe"
+    CIRCOM_BIN="${CIRCOM_BIN}.exe"
+    ;;
+  *)
+    echo "Unsupported OS: $OS"
+    exit 1
+    ;;
+esac
+
+echo "Downloading circom from: $URL"
+curl -L "$URL" -o "$CIRCOM_BIN"
+chmod +x "$CIRCOM_BIN"
+
+echo "circom installed to: $CIRCOM_BIN"
+
