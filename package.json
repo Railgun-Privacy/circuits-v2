@@ -1,5 +1,5 @@
 {
-  "license": "NONE",
+  "license": "SEE LICENSE IN License.md",
   "name": "circuits-v2",
   "version": "2.0.0",
   "description": "ZK-SNARK circuits for RAILGUN",
@@ -11,11 +11,20 @@
     "test": "PATH=./bin:$PATH mocha --exit --timeout 30000",
     "check": "./scripts/check_circuits"
   },
-  "devDependencies": {
-    "circom_tester": "0.0.18",
-    "mocha": "^9.2.0"
-  },
   "dependencies": {
     "circomlib": "2.0.5"
-  }
+  },
+  "devDependencies": {
+    "circom_tester": "0.0.24",
+    "mocha": "^11.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Railgun-Privacy/circuits-v2.git"
+  },
+  "author": "RAILGUN Contributors",
+  "bugs": {
+    "url": "https://github.com/Railgun-Privacy/circuits-v2/issues"
+  },
+  "homepage": "https://github.com/Railgun-Privacy/circuits-v2#readme"
 }
