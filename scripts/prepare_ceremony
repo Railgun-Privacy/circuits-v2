@@ -1,31 +1,83 @@
 #!/usr/bin/env bash
+set -euo pipefail
+
+VERBOSE=0
+FORCE=0
 
 INSTALL_DIR="./bin"
 CIRCOM_BIN="$INSTALL_DIR/circom"
 
 SRC_DIR="./src"
 DST_DIR="./build"
+SEED_DIR="./zkeys"
+
+POT_URL="https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_20.ptau"
+
+print() {
+  if [ "$VERBOSE" -eq 1 ]; then
+    echo "$@"
+  fi
+}
+
+for arg in "$@"; do
+  case "$arg" in
+  -v | --verbose)
+    VERBOSE=1
+    ;;
+  -f | --force)
+    FORCE=1
+    ;;
+  -p | --pot)
+    POT_URL="$2"
+    shift
+    ;;
+  -o | --output)
+    SEED_DIR="$2"
+    shift
+    ;;
+  -h | --help)
+    echo "Usage: $0 [OPTIONS]"
+    echo "Options:"
+    echo "  -f, --force        Force redownload of ptau, recompilation of circuits and zkey generation"
+    echo "  -p, --pot URL      Specify the URL for the powers of tau file (default: $POT_URL)"
+    echo "  -o, --output DIR   Specify the output directory for zkeys (default: $SEED_DIR)"
+    echo "  -v, --verbose      Enable verbose output"
+    echo "  -h, --help         Show this help message"
+    exit 1
+    ;;
+  esac
+done
 
 mkdir -p "$DST_DIR"
+mkdir -p "$SEED_DIR"
 
-POT=./pot20.ptau 
+POT="$INSTALL_DIR"/pot20.ptau
 
-if [ ! -f $POT ]; then
-  curl https://hermez.s3-eu-west-1.amazonaws.com/powersOfTau28_hez_final_20.ptau -o $POT
+if [ ! -f "$POT" ] || [ "$FORCE" -eq 1 ]; then
+  print "Downloading powers of tau file from $POT_URL"
+  curl -s "$POT_URL" -o "$POT"
+else
+  print "Using existing powers of tau file: $POT"
 fi
 
-echo "Compiling circuits"
-for FILE in "$SRC_DIR"/joinsplit_*.circom; do 
-  "$CIRCOM_BIN" --r1cs "$FILE" -o "$DST_DIR"
+print "Compiling circuits"
+for FILE in "$SRC_DIR"/joinsplit_*.circom; do
+  # if file does not exist in $DST_DIR, compile it
+  if [ ! -f "$DST_DIR/$(basename "${FILE%.*}.r1cs")" ] || [ "$FORCE" -eq 1 ]; then
+    "$CIRCOM_BIN" --r1cs "$FILE" -o "$DST_DIR"
+  else
+    print "Skipping $FILE, already compiled."
+  fi
 done
 
-echo "Generating initial zkeys"
-for FILE in "$DST_DIR"/*.r1cs; do 
-  SEED="${FILE%.*}.00.zkey"
+print "Generating initial zkeys"
+for FILE in "$DST_DIR"/*.r1cs; do
+  SEED=$(basename "${FILE%.*}.00.zkey")
 
-  npx snarkjs g16s "$FILE" "$POT" "$SEED"
+  if [ ! -f "$SEED_DIR/$SEED" ] || [ "$FORCE" -eq 1 ]; then
+    echo "Generating initial zkey for $FILE"
+    npx snarkjs g16s "$FILE" "$POT" "$SEED_DIR/$SEED"
+  else
+    print "Skipping $FILE, initial zkey already exists."
+  fi
 done
-
-rm "$BUILD_DIR"/*.0000
-
-echo "Done!"

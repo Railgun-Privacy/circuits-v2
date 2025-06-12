@@ -32,11 +32,10 @@ To compile the circuits to R1CS, Sym, JSON, WASM and C, run:
 npm run build
 ```
 
-
 To prepare zkeys for the trusted setup, run:
 
 ```sh
-./scripts/prepare_ceremony
+./scripts/prepare_ceremony # Use --help for more options
 ```
 
 ## License
