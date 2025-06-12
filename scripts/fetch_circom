@@ -1,34 +1,66 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -euox pipefail
+
+VERBOSE=0
+FORCE=0
 
 VERSION="2.0.6"
 INSTALL_DIR="./bin"
 CIRCOM_BIN="$INSTALL_DIR/circom"
 
-mkdir -p "$INSTALL_DIR"
+OS="$(node -p 'os.platform()')"
 
-OS="$(uname -s)"
+print() {
+  if [ "$VERBOSE" -eq 1 ]; then
+    echo "$@"
+  fi
+}
 
-case "$OS" in
-  Linux)
-    URL="https://github.com/iden3/circom/releases/download/v${VERSION}/circom-linux-amd64"
+for arg in "$@"; do
+  case "$arg" in
+  -v | --verbose)
+    VERBOSE=1
     ;;
-  Darwin)
-    URL="https://github.com/iden3/circom/releases/download/v${VERSION}/circom-macos-amd64"
+  -f | --force)
+    FORCE=1
     ;;
-  MINGW*|MSYS*|CYGWIN*)
-    URL="https://github.com/iden3/circom/releases/download/v${VERSION}/circom-windows-amd64.exe"
-    CIRCOM_BIN="${CIRCOM_BIN}.exe"
-    ;;
-  *)
-    echo "Unsupported OS: $OS"
+  -h | --help)
+    echo "Usage: $0 [OPTIONS]"
+    echo "Options:"
+    echo "  -f, --force     Force re-download of circom"
+    echo "  -v, --verbose   Enable verbose output"
+    echo "  -h, --help      Show this help message"
     exit 1
     ;;
+  esac
+done
+
+mkdir -p "$INSTALL_DIR"
+
+if [ -f "$CIRCOM_BIN" ] && [ "$FORCE" -eq 0 ]; then
+  print "circom is already installed at $CIRCOM_BIN"
+  exit 0
+fi
+
+case "$OS" in
+linux)
+  URL="https://github.com/iden3/circom/releases/download/v${VERSION}/circom-linux-amd64"
+  ;;
+darwin)
+  URL="https://github.com/iden3/circom/releases/download/v${VERSION}/circom-macos-amd64"
+  ;;
+win32)
+  URL="https://github.com/iden3/circom/releases/download/v${VERSION}/circom-windows-amd64.exe"
+  CIRCOM_BIN="${CIRCOM_BIN}.exe"
+  ;;
+*)
+  echo "Unsupported OS: $OS"
+  exit 1
+  ;;
 esac
 
-echo "Downloading circom from: $URL"
-curl -L "$URL" -o "$CIRCOM_BIN"
+print "Downloading circom from: $URL"
+curl -s -L "$URL" -o "$CIRCOM_BIN"
 chmod +x "$CIRCOM_BIN"
 
-echo "circom installed to: $CIRCOM_BIN"
-
+print "circom installed to: $CIRCOM_BIN"

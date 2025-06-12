@@ -14,18 +14,6 @@ First run:
 npm install
 ```
 
-To install a local version of the circom compiler at the target version above, run:
-
-```sh
-./scripts/fetch_circom
-```
-
-To generate all valid permutations of inputs x outputs run:
-
-```sh
-./scripts/generate_circuits
-```
-
 Test can now be run with:
 
 ```sh
@@ -35,13 +23,13 @@ npm test
 To check the circuits are valid run:
 
 ```sh
-./scripts/check_circuits
+npm run check
 ```
 
 To compile the circuits to R1CS, Sym, JSON, WASM and C, run:
 
 ```sh
-./scripts/compile_circuits
+npm run build
 ```
 
 
