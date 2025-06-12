@@ -4,7 +4,7 @@
   "version": "2.0.0",
   "description": "ZK-SNARK circuits for RAILGUN",
   "scripts": {
-    "test": " mocha --exit --timeout 30000"
+    "test": "PATH=./bin:$PATH mocha --exit --timeout 30000"
   },
   "devDependencies": {
     "circom_tester": "0.0.18",

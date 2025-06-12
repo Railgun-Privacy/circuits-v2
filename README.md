@@ -26,6 +26,12 @@ To generate all valid permutations of inputs x outputs run:
 ./scripts/generate_circuits
 ```
 
+Test can now be run with:
+
+```sh
+npm test
+```
+
 To check the circuits are valid run:
 
 ```sh

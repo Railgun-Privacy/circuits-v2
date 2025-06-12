@@ -1,7 +1,7 @@
 const tester = require('circom_tester').wasm;
 const assert = require('node:assert');
 
-describe('Joinsplit 1x2', async () => {
+describe('Joinsplit 02x02', async () => {
   it('Should fail correctness with dummy input', async () => {
     const circuit = await tester('./src/joinsplit_02x02.circom', { reduceConstraints: false });
 
