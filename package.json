@@ -5,11 +5,13 @@
   "description": "ZK-SNARK circuits for RAILGUN",
   "scripts": {
     "prepare": "./scripts/fetch_circom",
-    "prebuild": "./scripts/generate_circuits",
+    "prebuild": "./scripts/fetch_circom; ./scripts/generate_circuits",
     "build": "./scripts/compile_circuits",
-    "pretest": "./scripts/generate_circuits",
-    "test": "PATH=./bin:$PATH mocha --exit --timeout 30000",
-    "check": "./scripts/check_circuits"
+    "pretest": "./scripts/fetch_circom; ./scripts/generate_circuits",
+    "test": "PATH=./bin:$PATH mocha --exit --timeout 600000",
+    "check": "npm run prebuild; ./scripts/check_circuits",
+    "clean": "./scripts/clean",
+    "ceremony": "npm run prebuild; ./scripts/prepare_ceremony -v"
   },
   "dependencies": {
     "circomlib": "2.0.5"

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+CIRCOM_INSTALL_DIR="./bin"
+GENERATED_CIRCUITS_DIR="./src/generated"
+BUILD_DIR="./build"
+CEREMONY_SEED_DIR="./zkeys"
+
+rm -rf $CIRCOM_INSTALL_DIR
+rm -rf $GENERATED_CIRCUITS_DIR
+rm -rf $BUILD_DIR
+rm -rf $CEREMONY_SEED_DIR

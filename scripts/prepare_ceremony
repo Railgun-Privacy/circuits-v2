@@ -61,7 +61,7 @@ else
 fi
 
 print "Compiling circuits"
-for FILE in "$SRC_DIR"/joinsplit_*.circom; do
+for FILE in "$SRC_DIR"/generated/joinsplit_*.circom; do
   # if file does not exist in $DST_DIR, compile it
   if [ ! -f "$DST_DIR/$(basename "${FILE%.*}.r1cs")" ] || [ "$FORCE" -eq 1 ]; then
     "$CIRCOM_BIN" --r1cs "$FILE" -o "$DST_DIR"

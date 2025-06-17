@@ -6,7 +6,7 @@ CIRCOM_BIN="$INSTALL_DIR/circom"
 SRC_DIR="./src"
 
 # Loop through all .circom files in the current directory
-for file in "$SRC_DIR"/*.circom; do
+for file in "$SRC_DIR"/generated/*.circom; do
   echo "Checking $file..."
   # Run circom command with the current file
   "$CIRCOM_BIN" "$file"
