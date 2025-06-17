@@ -1,16 +1,9 @@
 const tester = require('circom_tester').wasm;
 const fs = require('fs').promises;
 const { convertToBigInt } = require('./utils/formatInputs');
+const testData = require('./utils/merkle_tree_and_test_inputs.json').testInputs;
 
 describe('Joinsplit All Circuits Correctness', () => {
-  let testData;
-
-  before(async () => {
-    // Load test inputs once
-    const data = await fs.readFile('./test/utils/merkle_tree_and_test_inputs.json', 'utf8');
-    testData = JSON.parse(data).testInputs;
-  });
-
   // Generate all valid circuit configs
   const circuitList = [];
   for (let i = 1; i <= 14; i++) {

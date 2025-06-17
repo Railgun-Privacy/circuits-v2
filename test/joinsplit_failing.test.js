@@ -2,15 +2,9 @@ const tester = require('circom_tester').wasm;
 const fs = require('fs').promises;
 const assert = require('assert');
 const { convertToBigInt } = require('./utils/formatInputs');
+const testData = require('./utils/merkle_tree_and_test_inputs.json').testInputs;
 
 describe('Joinsplit All Circuits Failing', () => {
-  let testData;
-
-  before(async () => {
-    const data = await fs.readFile('./test/utils/merkle_tree_and_test_inputs.json', 'utf8');
-    testData = JSON.parse(data).testInputs;
-  });
-
   // Generate all valid circuit configs
   const circuitList = [];
   for (let i = 1; i <= 14; i++) {
