@@ -3,9 +3,9 @@ const fs = require("node:fs/promises");
 const { runWorker } = require("../../lib/shared.js");
 
 async function main(args) {
-  fs.writeFileSync(
+  await fs.writeFile(
     args.destination,
-    zlib.brotliCompressSync(fs.readFileSync(args.source), {
+    zlib.brotliCompressSync(await fs.readFile(args.source), {
       params: {
         [zlib.constants.BROTLI_PARAM_QUALITY]:
           zlib.constants.BROTLI_MAX_QUALITY,
