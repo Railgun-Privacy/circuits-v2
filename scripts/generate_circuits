@@ -2,7 +2,7 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const circuitConfigs = require("../lib/circuitConfigs.js");
-const { pathExists } = require("../lib/shared.js");
+const { pathExists, circuitConfigToName } = require("../lib/shared.js");
 
 // Constants
 const GENERATED_DIR = path.join(__dirname, "../src/generated");
@@ -24,19 +24,18 @@ async function main() {
   // Create generated dir
   await fs.mkdir(GENERATED_DIR);
 
-  for (const { commitments, nullifiers } of circuitConfigs) {
+  for (const circuitConfig of circuitConfigs) {
     // Throw if trying to generate a circuit combination with more than max poseidon inputs for signature check
-    if (nullifiers + commitments + 2 + 1 > 17)
+    if (circuitConfig.nullifiers + circuitConfig.commitments + 2 + 1 > 17)
       throw new Error("Invalid combination");
 
-    // Stringify nullifier and commitment counts
-    const nullifiersStr = nullifiers.toString().padStart(2, "0");
-    const commitmentsStr = commitments.toString().padStart(2, "0");
+    // Get circuit name
+    const name = circuitConfigToName(circuitConfig);
 
     // Write generated circuit to file
     await fs.writeFile(
-      path.join(GENERATED_DIR, `${nullifiersStr}x${commitmentsStr}.circom`),
-      template(nullifiers, commitments)
+      path.join(GENERATED_DIR, `${name}.circom`),
+      template(circuitConfig.nullifiers, circuitConfig.commitments)
     );
   }
 }
