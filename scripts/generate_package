@@ -1,0 +1,80 @@
+#!/usr/bin/env node
+const fs = require("node:fs/promises");
+const path = require("node:path");
+const circuitConfigs = require("../lib/circuitConfigs.js");
+const {
+  pathExists,
+  circuitConfigToName,
+  runWorker,
+  processParallel,
+} = require("../lib/shared.js");
+
+// Constants
+const CEREMONY_EXPORT = path.join(__dirname, "../ceremony-export");
+const PACKAGE_TEMPLATE = path.join(__dirname, "../package-template");
+const PACKAGE_DIR = path.join(__dirname, "../package");
+const BUILD_DIR = path.join(__dirname, "../build");
+
+async function main() {
+  // Check if ceremony export exists
+  if (!pathExists(CEREMONY_EXPORT)) {
+    console.log(`Expected ceremony export to be present in ${CEREMONY_EXPORT}`);
+    process.exit(1);
+  }
+
+  // Remove package dir if exists
+  if (pathExists(PACKAGE_DIR))
+    await fs.rm(PACKAGE_DIR, { recursive: true, force: true });
+
+  // Copy package template
+  await fs.cp(PACKAGE_TEMPLATE, PACKAGE_DIR, { recursive: true });
+
+  // Copy circuit configs
+  await fs.cp(
+    path.join(__dirname, "../lib/circuitConfigs.js"),
+    path.join(PACKAGE_DIR, "circuitConfigs.js"),
+    { recursive: true }
+  );
+
+  // Create circuits folder
+  await fs.mkdir(path.join(PACKAGE_DIR, "circuits"));
+
+  const compressionQueue = [];
+
+  // Loop through each circuit
+  for (const circuitConfig of circuitConfigs) {
+    const name = circuitConfigToName(circuitConfig);
+
+    // Create circuit folder
+    await fs.mkdir(path.join(PACKAGE_DIR, "circuits", name));
+
+    console.log(`Copying zkey and vkey for ${name}`);
+
+    // Copy zkey and vkey
+    await fs.cp(
+      path.join(CEREMONY_EXPORT, "circuits", name, "zkey.br"),
+      path.join(PACKAGE_DIR, "circuits", name, "zkey.br")
+    );
+    await fs.cp(
+      path.join(CEREMONY_EXPORT, "circuits", name, "vkey.json"),
+      path.join(PACKAGE_DIR, "circuits", name, "vkey.json")
+    );
+
+    // Add wasm to compression queue
+    compressionQueue.push(() => {
+      console.log(`Compressing ${name}.wasm`);
+      return runWorker.parent(
+        path.join(__dirname, "child_process/compress_file.js"),
+        {
+          source: path.join(BUILD_DIR, `${name}_js/${name}.wasm`),
+          destination: path.join(PACKAGE_DIR, "circuits", name, "wasm.br"),
+        }
+      );
+    });
+  }
+
+  console.log("\nCOMPRESSING WASM");
+  await processParallel(compressionQueue);
+}
+
+void main();

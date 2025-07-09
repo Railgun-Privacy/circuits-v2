@@ -1,7 +1,17 @@
 const fs = require("fs");
-const decompress = require("brotli/decompress");
+const path = require("path");
+const zlib = require("node:zlib");
+const circuitConfigs = require("./circuitConfigs.js");
 
 const cache = [];
+
+function circuitConfigToName(circuitConfig) {
+  return `${circuitConfig.nullifiers
+    .toString()
+    .padStart(2, "0")}x${circuitConfig.commitments
+    .toString()
+    .padStart(2, "0")}`;
+}
 
 function getArtifact(nullifiers, commitments) {
   if (!cache[nullifiers]) {
@@ -10,19 +20,34 @@ function getArtifact(nullifiers, commitments) {
 
   if (!cache[nullifiers][commitments]) {
     cache[nullifiers][commitments] = {
-      zkey: decompress(
+      zkey: zlib.brotliDecompressSync(
         fs.readFileSync(
-          `${__dirname}/circuits/${nullifiers}x${commitments}/zkey.br`
+          path.join(
+            __dirname,
+            "circuits",
+            circuitConfigToName({ nullifiers, commitments }),
+            "zkey.br"
+          )
         )
       ),
-      wasm: decompress(
+      wasm: zlib.brotliDecompressSync(
         fs.readFileSync(
-          `${__dirname}/circuits/${nullifiers}x${commitments}/wasm.br`
+          path.join(
+            __dirname,
+            "circuits",
+            circuitConfigToName({ nullifiers, commitments }),
+            "wasm.br"
+          )
         )
       ),
       vkey: JSON.parse(
         fs.readFileSync(
-          `${__dirname}/circuits/${nullifiers}x${commitments}/vkey.json`
+          path.join(
+            __dirname,
+            "circuits",
+            circuitConfigToName({ nullifiers, commitments }),
+            "vkey.json"
+          )
         )
       ),
     };
@@ -35,7 +60,12 @@ function getVKey(nullifiers, commitments) {
   if (!cache[nullifiers] || !cache[nullifiers][commitments]) {
     return JSON.parse(
       fs.readFileSync(
-        `${__dirname}/circuits/${nullifiers}x${commitments}/vkey.json`
+        path.join(
+          __dirname,
+          "circuits",
+          circuitConfigToName({ nullifiers, commitments }),
+          "vkey.json"
+        )
       )
     );
   }
@@ -44,22 +74,6 @@ function getVKey(nullifiers, commitments) {
 }
 
 function listArtifacts() {
-  const circuitConfigs = [];
-
-  // Every combination of nullifiers and commitments where nullifiers + commitments + 3 <= 17
-  for (let nullifiers = 1; nullifiers <= 14; nullifiers += 1) {
-    for (
-      let commitments = 1;
-      commitments <= 14 - nullifiers;
-      commitments += 1
-    ) {
-      circuitConfigs.push({
-        nullifiers,
-        commitments,
-      });
-    }
-  }
-
   return circuitConfigs;
 }
 

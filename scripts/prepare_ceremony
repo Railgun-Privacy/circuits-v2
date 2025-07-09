@@ -15,7 +15,7 @@ const {
 
 // Constants
 const INSTALL_DIR = path.join(__dirname, "../bin");
-const DST_DIR = path.join(__dirname, "../build");
+const BUILD_DIR = path.join(__dirname, "../build");
 const SEED_DIR = path.join(__dirname, "../zkeys");
 const POT_PATH = path.join(INSTALL_DIR, "pot.ptau");
 const POT_URL =
@@ -56,7 +56,7 @@ async function main() {
     const name = circuitConfigToName(circuit);
 
     // Get paths
-    const r1cs = path.join(DST_DIR, `${name}.r1cs`);
+    const r1cs = path.join(BUILD_DIR, `${name}.r1cs`);
     const zkey = path.join(SEED_DIR, `${name}.zkey`);
 
     // Generate zkey if not exist (always generate if force flag set)

@@ -4,3 +4,4 @@ bin
 zkeys
 src/generated
 package
+ceremony-export

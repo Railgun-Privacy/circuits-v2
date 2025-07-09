@@ -28,7 +28,7 @@ const CIRCOM_BIN = (() => {
   }
 })();
 const GENERATED_DIR = path.join(__dirname, "../src/generated");
-const DST_DIR = path.join(__dirname, "../build");
+const BUILD_DIR = path.join(__dirname, "../build");
 
 async function main() {
   // Print help and exit if help flag
@@ -41,7 +41,7 @@ async function main() {
   }
 
   // Make build directory if doesn't exist
-  if (!pathExists(DST_DIR)) await fs.mkdir(DST_DIR);
+  if (!pathExists(BUILD_DIR)) await fs.mkdir(BUILD_DIR);
 
   // Generate queue for compiling all circuits
   const queue = circuitConfigs.map((circuit) => async () => {
@@ -49,7 +49,7 @@ async function main() {
 
     // Check if already compiled, ignore if force flag set
     if (
-      pathExists(path.join(DST_DIR, `${name}.circom.compiled`)) &&
+      pathExists(path.join(BUILD_DIR, `${name}.circom.compiled`)) &&
       !cliArguments()["force"]
     ) {
       console.log(`${name}.circom already compiled`);
@@ -69,7 +69,7 @@ async function main() {
         "--c",
         path.join(GENERATED_DIR, `${name}.circom`),
         "--output",
-        DST_DIR,
+        BUILD_DIR,
       ],
       false
     );
@@ -82,7 +82,7 @@ async function main() {
 
     // Mark as compiled
     await fs.writeFile(
-      path.join(DST_DIR, `${name}.circom.compiled`),
+      path.join(BUILD_DIR, `${name}.circom.compiled`),
       new Uint8Array([])
     );
   });
