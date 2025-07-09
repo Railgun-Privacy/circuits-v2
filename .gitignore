@@ -3,3 +3,4 @@ build
 bin
 zkeys
 src/generated
+package
