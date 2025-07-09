@@ -28,10 +28,10 @@ async function main() {
     console.log("Usage: ./scripts/prepare_ceremony [OPTIONS]");
     console.log("Options:");
     console.log(
-      "  --force     Force redownload of ptau and regeneration of all zkeys",
+      "  --force     Force redownload of ptau and regeneration of all zkeys"
     );
     console.log(
-      `  --pot       Specify the URL for the powers of tau file (default: ${POT_URL})`,
+      `  --pot       Specify the URL for the powers of tau file (default: ${POT_URL})`
     );
     console.log("  --verbose   Enable verbose output");
     console.log("  --help      Show this help message");
@@ -44,7 +44,7 @@ async function main() {
     await run(
       `curl`,
       ["-L", POT_URL, "-o", POT_PATH],
-      cliArguments()["verbose"],
+      cliArguments()["verbose"]
     );
   }
 
@@ -52,31 +52,29 @@ async function main() {
   if (!pathExists(SEED_DIR)) await fs.mkdir(SEED_DIR);
 
   // Create queue for generating zkeys
-  const queue = circuitConfigs.map((circuit) => {
-    return async () => {
-      const name = circuitConfigToName(circuit);
+  const queue = circuitConfigs.map((circuit) => async () => {
+    const name = circuitConfigToName(circuit);
 
-      // Get paths
-      const r1cs = path.join(DST_DIR, `${name}.r1cs`);
-      const zkey = path.join(SEED_DIR, `${name}.zkey`);
+    // Get paths
+    const r1cs = path.join(DST_DIR, `${name}.r1cs`);
+    const zkey = path.join(SEED_DIR, `${name}.zkey`);
 
-      // Generate zkey if not exist (always generate if force flag set)
-      if (!pathExists(zkey) || cliArguments()["force"]) {
-        console.log(`Generating ${name}.zkey`);
-        await runWorker.parent(
-          path.join(__dirname, "child_process/zkey_create.js"),
-          {
-            r1cs,
-            ptau: POT_PATH,
-            zkey,
-            print: cliArguments()["verbose"],
-          },
-        );
-        console.log(`${name}.zkey generated`);
-      } else {
-        console.log(`${name}.zkey already exists`);
-      }
-    };
+    // Generate zkey if not exist (always generate if force flag set)
+    if (!pathExists(zkey) || cliArguments()["force"]) {
+      console.log(`Generating ${name}.zkey`);
+      await runWorker.parent(
+        path.join(__dirname, "child_process/zkey_create.js"),
+        {
+          r1cs,
+          ptau: POT_PATH,
+          zkey,
+          print: cliArguments()["verbose"],
+        }
+      );
+      console.log(`${name}.zkey generated`);
+    } else {
+      console.log(`${name}.zkey already exists`);
+    }
   });
 
   // Generate zkeys

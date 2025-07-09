@@ -24,25 +24,23 @@ const GENERATED_DIR = path.join(__dirname, "../src/generated");
 
 async function main() {
   // Generate queue for checking all circuits
-  const queue = circuitConfigs.map((circuit) => {
-    return async () => {
-      const name = circuitConfigToName(circuit);
+  const queue = circuitConfigs.map((circuit) => async () => {
+    const name = circuitConfigToName(circuit);
 
-      console.log(`CHECKING ${name}`);
+    console.log(`CHECKING ${name}`);
 
-      const output = await run(
-        CIRCOM_BIN,
-        [path.join(GENERATED_DIR, `${name}.circom`)],
-        false
-      );
+    const output = await run(
+      CIRCOM_BIN,
+      [path.join(GENERATED_DIR, `${name}.circom`)],
+      false
+    );
 
-      // circom 2.0.6 does not actually set the exit code correctly, this will never trigger
-      // if (output.code) console.log(`${name} CHECK EXITED WITH ERRORS`);
+    // circom 2.0.6 does not actually set the exit code correctly, this will never trigger
+    // if (output.code) console.log(`${name} CHECK EXITED WITH ERRORS`);
 
-      return {
-        name,
-        output,
-      };
+    return {
+      name,
+      output,
     };
   });
 

@@ -44,49 +44,47 @@ async function main() {
   if (!pathExists(DST_DIR)) await fs.mkdir(DST_DIR);
 
   // Generate queue for compiling all circuits
-  const queue = circuitConfigs.map((circuit) => {
-    return async () => {
-      const name = circuitConfigToName(circuit);
+  const queue = circuitConfigs.map((circuit) => async () => {
+    const name = circuitConfigToName(circuit);
 
-      // Check if already compiled, ignore if force flag set
-      if (
-        pathExists(path.join(DST_DIR, `${name}.circom.compiled`)) &&
-        !cliArguments()["force"]
-      ) {
-        console.log(`${name}.circom already compiled`);
-        return;
-      }
+    // Check if already compiled, ignore if force flag set
+    if (
+      pathExists(path.join(DST_DIR, `${name}.circom.compiled`)) &&
+      !cliArguments()["force"]
+    ) {
+      console.log(`${name}.circom already compiled`);
+      return;
+    }
 
-      // Compile
-      console.log(`COMPILING ${name}`);
-      const output = await run(
-        CIRCOM_BIN,
-        [
-          "--r1cs",
-          "--sym",
-          "--json",
-          "--wasm",
-          "--wat",
-          "--c",
-          path.join(GENERATED_DIR, `${name}.circom`),
-          "--output",
-          DST_DIR,
-        ],
-        false,
-      );
+    // Compile
+    console.log(`COMPILING ${name}`);
+    const output = await run(
+      CIRCOM_BIN,
+      [
+        "--r1cs",
+        "--sym",
+        "--json",
+        "--wasm",
+        "--wat",
+        "--c",
+        path.join(GENERATED_DIR, `${name}.circom`),
+        "--output",
+        DST_DIR,
+      ],
+      false
+    );
 
-      // Output to console
-      console.log(`COMPILED ${name}`);
-      output.output
-        .filter((line) => line !== null && line !== undefined)
-        .forEach((line) => process.stdin.write(line));
+    // Output to console
+    console.log(`COMPILED ${name}`);
+    output.output
+      .filter((line) => line !== null && line !== undefined)
+      .forEach((line) => process.stdin.write(line));
 
-      // Mark as compiled
-      await fs.writeFile(
-        path.join(DST_DIR, `${name}.circom.compiled`),
-        new Uint8Array([]),
-      );
-    };
+    // Mark as compiled
+    await fs.writeFile(
+      path.join(DST_DIR, `${name}.circom.compiled`),
+      new Uint8Array([])
+    );
   });
 
   // Compole all circuits
