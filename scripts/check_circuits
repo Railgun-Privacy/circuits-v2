@@ -1,21 +1,65 @@
-#!/usr/bin/env bash
+#!/usr/bin/env node
+const os = require("node:os");
+const process = require("node:process");
+const path = require("path");
+const circuitConfigs = require("../lib/circuitConfigs");
+const { circuitConfigToName, run, processParallel } = require("../lib/shared");
 
-INSTALL_DIR="./bin"
-CIRCOM_BIN="$INSTALL_DIR/circom"
+// Constants
+const INSTALL_DIR = path.join(__dirname, "../bin");
+const PLATFORM = os.platform();
+const CIRCOM_BIN = (() => {
+  switch (PLATFORM) {
+    case "linux":
+      return path.join(INSTALL_DIR, "circom");
+    case "macos":
+      return path.join(INSTALL_DIR, "circom");
+    case "win32":
+      return path.join(INSTALL_DIR, "circom.exe");
+    default:
+      return "";
+  }
+})();
+const GENERATED_DIR = path.join(__dirname, "../src/generated");
 
-SRC_DIR="./src"
+async function main() {
+  // Generate queue for checking all circuits
+  const queue = circuitConfigs.map((circuit) => {
+    return async () => {
+      const name = circuitConfigToName(circuit);
 
-# Loop through all .circom files in the current directory
-for file in "$SRC_DIR"/generated/*.circom; do
-  echo "Checking $file..."
-  # Run circom command with the current file
-  "$CIRCOM_BIN" "$file"
+      console.log(`CHECKING ${name}`);
 
-  # Check if the command succeeded
-  # FIXME: circom 2.0.6 does not actually set the exit code correctly
-  if [[ $? -eq 0 ]]; then
-    echo "Successfully compiled $file"
-  else
-    echo "Failed to compile $file" >&2
-  fi
-done
+      const output = await run(
+        CIRCOM_BIN,
+        [path.join(GENERATED_DIR, `${name}.circom`)],
+        false
+      );
+
+      // circom 2.0.6 does not actually set the exit code correctly, this will never trigger
+      // if (output.code) console.log(`${name} CHECK EXITED WITH ERRORS`);
+
+      return {
+        name,
+        output,
+      };
+    };
+  });
+
+  // Check all circuits
+  const results = await processParallel(queue);
+
+  // Print all results to console
+  results.forEach((result) => {
+    console.log(`\nRESULTS FOR CIRCUIT ${result.name}`);
+    result.output.output
+      .filter((line) => line !== null && line !== undefined)
+      .forEach((line) => process.stdin.write(line));
+
+    // circom 2.0.6 does not actually set the exit code correctly, this will never trigger
+    // if (result.output.code)
+    //   console.log(`${result.name} HAS ERRORS`);
+  });
+}
+
+void main();

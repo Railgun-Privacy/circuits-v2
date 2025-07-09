@@ -1,11 +1,23 @@
-#!/usr/bin/env bash
+#!/usr/bin/env node
+const path = require("node:path");
+const fs = require("node:fs/promises");
+const { pathExists } = require("../lib/shared");
 
-CIRCOM_INSTALL_DIR="./bin"
-GENERATED_CIRCUITS_DIR="./src/generated"
-BUILD_DIR="./build"
-CEREMONY_SEED_DIR="./zkeys"
+// Constants
+const CIRCOM_INSTALL_DIR = path.join(__dirname, "../bin");
+const GENERATED_CIRCUITS_DIR = path.join(__dirname, "../src/generated");
+const BUILD_DIR = path.join(__dirname, "../build");
+const CEREMONY_SEED_DIR = path.join(__dirname, "../zkeys");
 
-rm -rf $CIRCOM_INSTALL_DIR
-rm -rf $GENERATED_CIRCUITS_DIR
-rm -rf $BUILD_DIR
-rm -rf $CEREMONY_SEED_DIR
+async function main() {
+  if (pathExists(CIRCOM_INSTALL_DIR))
+    await fs.rm(CIRCOM_INSTALL_DIR, { recursive: true, force: true });
+  if (pathExists(GENERATED_CIRCUITS_DIR))
+    await fs.rm(GENERATED_CIRCUITS_DIR, { recursive: true, force: true });
+  if (pathExists(BUILD_DIR))
+    await fs.rm(BUILD_DIR, { recursive: true, force: true });
+  if (pathExists(CEREMONY_SEED_DIR))
+    await fs.rm(CEREMONY_SEED_DIR, { recursive: true, force: true });
+}
+
+void main();

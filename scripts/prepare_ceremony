@@ -1,83 +1,86 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env node
+const os = require("node:os");
+const fs = require("node:fs/promises");
+const process = require("node:process");
+const path = require("path");
+const circuitConfigs = require("../lib/circuitConfigs");
+const {
+  circuitConfigToName,
+  processParallel,
+  pathExists,
+  cliArguments,
+  run,
+  runWorker,
+} = require("../lib/shared");
 
-VERBOSE=0
-FORCE=0
+// Constants
+const INSTALL_DIR = path.join(__dirname, "../bin");
+const DST_DIR = path.join(__dirname, "../build");
+const SEED_DIR = path.join(__dirname, "../zkeys");
+const POT_PATH = path.join(INSTALL_DIR, "pot.ptau");
+const POT_URL =
+  cliArguments()["pot"] ||
+  "https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_20.ptau";
 
-INSTALL_DIR="./bin"
-CIRCOM_BIN="$INSTALL_DIR/circom"
+async function main() {
+  // Print help and exit if help flag
+  if (cliArguments()["help"]) {
+    console.log("Usage: ./scripts/prepare_ceremony [OPTIONS]");
+    console.log("Options:");
+    console.log(
+      "  --force     Force redownload of ptau and regeneration of all zkeys",
+    );
+    console.log(
+      `  --pot       Specify the URL for the powers of tau file (default: ${POT_URL})`,
+    );
+    console.log("  --verbose   Enable verbose output");
+    console.log("  --help      Show this help message");
+    process.exit();
+  }
 
-SRC_DIR="./src"
-DST_DIR="./build"
-SEED_DIR="./zkeys"
+  // Download ptau file if not exist (always download if force flag set)
+  if (!pathExists(POT_PATH) || cliArguments()["force"]) {
+    console.log("Download powers of tau phase 1");
+    await run(
+      `curl`,
+      ["-L", POT_URL, "-o", POT_PATH],
+      cliArguments()["verbose"],
+    );
+  }
 
-POT_URL="https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_20.ptau"
+  // Make zkey directory if doesn't exist
+  if (!pathExists(SEED_DIR)) await fs.mkdir(SEED_DIR);
 
-print() {
-  if [ "$VERBOSE" -eq 1 ]; then
-    echo "$@"
-  fi
+  // Create queue for generating zkeys
+  const queue = circuitConfigs.map((circuit) => {
+    return async () => {
+      const name = circuitConfigToName(circuit);
+
+      // Get paths
+      const r1cs = path.join(DST_DIR, `${name}.r1cs`);
+      const zkey = path.join(SEED_DIR, `${name}.zkey`);
+
+      // Generate zkey if not exist (always generate if force flag set)
+      if (!pathExists(zkey) || cliArguments()["force"]) {
+        console.log(`Generating ${name}.zkey`);
+        await runWorker.parent(
+          path.join(__dirname, "child_process/zkey_create.js"),
+          {
+            r1cs,
+            ptau: POT_PATH,
+            zkey,
+            print: cliArguments()["verbose"],
+          },
+        );
+        console.log(`${name}.zkey generated`);
+      } else {
+        console.log(`${name}.zkey already exists`);
+      }
+    };
+  });
+
+  // Generate zkeys
+  await processParallel(queue);
 }
 
-for arg in "$@"; do
-  case "$arg" in
-  -v | --verbose)
-    VERBOSE=1
-    ;;
-  -f | --force)
-    FORCE=1
-    ;;
-  -p | --pot)
-    POT_URL="$2"
-    shift
-    ;;
-  -o | --output)
-    SEED_DIR="$2"
-    shift
-    ;;
-  -h | --help)
-    echo "Usage: $0 [OPTIONS]"
-    echo "Options:"
-    echo "  -f, --force        Force redownload of ptau, recompilation of circuits and zkey generation"
-    echo "  -p, --pot URL      Specify the URL for the powers of tau file (default: $POT_URL)"
-    echo "  -o, --output DIR   Specify the output directory for zkeys (default: $SEED_DIR)"
-    echo "  -v, --verbose      Enable verbose output"
-    echo "  -h, --help         Show this help message"
-    exit 1
-    ;;
-  esac
-done
-
-mkdir -p "$DST_DIR"
-mkdir -p "$SEED_DIR"
-
-POT="$INSTALL_DIR"/pot20.ptau
-
-if [ ! -f "$POT" ] || [ "$FORCE" -eq 1 ]; then
-  print "Downloading powers of tau file from $POT_URL"
-  curl -s "$POT_URL" -o "$POT"
-else
-  print "Using existing powers of tau file: $POT"
-fi
-
-print "Compiling circuits"
-for FILE in "$SRC_DIR"/generated/joinsplit_*.circom; do
-  # if file does not exist in $DST_DIR, compile it
-  if [ ! -f "$DST_DIR/$(basename "${FILE%.*}.r1cs")" ] || [ "$FORCE" -eq 1 ]; then
-    "$CIRCOM_BIN" --r1cs "$FILE" -o "$DST_DIR"
-  else
-    print "Skipping $FILE, already compiled."
-  fi
-done
-
-print "Generating initial zkeys"
-for FILE in "$DST_DIR"/*.r1cs; do
-  SEED=$(basename "${FILE%.*}.00.zkey")
-
-  if [ ! -f "$SEED_DIR/$SEED" ] || [ "$FORCE" -eq 1 ]; then
-    echo "Generating initial zkey for $FILE"
-    npx snarkjs g16s "$FILE" "$POT" "$SEED_DIR/$SEED"
-  else
-    print "Skipping $FILE, initial zkey already exists."
-  fi
-done
+void main();

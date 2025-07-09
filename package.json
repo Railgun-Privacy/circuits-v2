@@ -4,20 +4,21 @@
   "version": "2.0.0",
   "description": "ZK-SNARK circuits for RAILGUN",
   "scripts": {
-    "prepare": "./scripts/fetch_circom",
-    "prebuild": "./scripts/fetch_circom; ./scripts/generate_circuits",
+    "prepare": "./scripts/fetch_circom --verbose",
+    "prebuild": "npm run prepare; ./scripts/generate_circuits",
     "build": "./scripts/compile_circuits",
-    "pretest": "./scripts/fetch_circom; ./scripts/generate_circuits",
+    "pretest": "npm run prebuild",
     "test": "PATH=./bin:$PATH mocha --exit --timeout 600000",
     "check": "npm run prebuild; ./scripts/check_circuits",
     "clean": "./scripts/clean",
-    "ceremony": "npm run prebuild; ./scripts/prepare_ceremony -v"
+    "ceremony": "npm run build; ./scripts/prepare_ceremony"
   },
   "dependencies": {
     "circomlib": "2.0.5"
   },
   "devDependencies": {
     "circom_tester": "0.0.24",
+    "minimist": "^1.2.8",
     "mocha": "^11.6.0"
   },
   "repository": {

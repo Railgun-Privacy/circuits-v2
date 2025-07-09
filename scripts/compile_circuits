@@ -1,22 +1,96 @@
-#!/usr/bin/env bash
+#!/usr/bin/env node
+const os = require("node:os");
+const fs = require("node:fs/promises");
+const process = require("node:process");
+const path = require("path");
+const circuitConfigs = require("../lib/circuitConfigs");
+const {
+  circuitConfigToName,
+  run,
+  processParallel,
+  pathExists,
+  cliArguments,
+} = require("../lib/shared");
 
-INSTALL_DIR="./bin"
-CIRCOM_BIN="$INSTALL_DIR/circom"
+// Constants
+const INSTALL_DIR = "./bin";
+const PLATFORM = os.platform();
+const CIRCOM_BIN = (() => {
+  switch (PLATFORM) {
+    case "linux":
+      return path.join(INSTALL_DIR, "circom");
+    case "macos":
+      return path.join(INSTALL_DIR, "circom");
+    case "win32":
+      return path.join(INSTALL_DIR, "circom.exe");
+    default:
+      return "";
+  }
+})();
+const GENERATED_DIR = path.join(__dirname, "../src/generated");
+const DST_DIR = path.join(__dirname, "../build");
 
-SRC_DIR="./src"
-DST_DIR="./build"
+async function main() {
+  // Print help and exit if help flag
+  if (cliArguments()["help"]) {
+    console.log("Usage: ./scripts/compile_circuits [OPTIONS]");
+    console.log("Options:");
+    console.log("  --force     Force recompile");
+    console.log("  --help      Show this help message");
+    process.exit();
+  }
 
-mkdir -p "$DST_DIR"
+  // Make build directory if doesn't exist
+  if (!pathExists(DST_DIR)) await fs.mkdir(DST_DIR);
 
-# Loop through all .circom files in the current directory
-for file in "$SRC_DIR/generated"/*.circom; do
-  echo "Compiling $file..."
-  # Run circom command with the current file
-  "$CIRCOM_BIN" \
-    --r1cs \
-    --sym \
-    --json \
-    --wasm --wat \
-    --c \
-    "$file" -o "$DST_DIR"
-done
+  // Generate queue for compiling all circuits
+  const queue = circuitConfigs.map((circuit) => {
+    return async () => {
+      const name = circuitConfigToName(circuit);
+
+      // Check if already compiled, ignore if force flag set
+      if (
+        pathExists(path.join(DST_DIR, `${name}.circom.compiled`)) &&
+        !cliArguments()["force"]
+      ) {
+        console.log(`${name}.circom already compiled`);
+        return;
+      }
+
+      // Compile
+      console.log(`COMPILING ${name}`);
+      const output = await run(
+        CIRCOM_BIN,
+        [
+          "--r1cs",
+          "--sym",
+          "--json",
+          "--wasm",
+          "--wat",
+          "--c",
+          path.join(GENERATED_DIR, `${name}.circom`),
+          "--output",
+          DST_DIR,
+        ],
+        false,
+      );
+
+      // Output to console
+      console.log(`COMPILED ${name}`);
+      output.output
+        .filter((line) => line !== null && line !== undefined)
+        .forEach((line) => process.stdin.write(line));
+
+      // Mark as compiled
+      await fs.writeFile(
+        path.join(DST_DIR, `${name}.circom.compiled`),
+        new Uint8Array([]),
+      );
+    };
+  });
+
+  // Compole all circuits
+  await processParallel(queue);
+}
+
+void main();

@@ -1,7 +1,8 @@
-const assert = require('node:assert');
-const tester = require('circom_tester').wasm;
-const vectors = require('./vectors.json');
-const circuitConfigs = require('../circuitConfigs');
+const assert = require("node:assert");
+const tester = require("circom_tester").wasm;
+const vectors = require("./vectors.json");
+const circuitConfigs = require("../lib/circuitConfigs");
+const { circuitConfigToName } = require("../lib/shared");
 
 function formatCircuitInputs(inputs) {
   const toBigInt = (x) => BigInt(x);
@@ -23,19 +24,20 @@ function formatCircuitInputs(inputs) {
   };
 }
 
-describe('Joinsplit', () => {
+describe("Joinsplit", () => {
   // Loop through all circuits
-  for (const { commitmentCount, nullifierCount } of circuitConfigs) {
-    const circuitName = `joinsplit_${String(nullifierCount).padStart(2, '0')}x${String(commitmentCount).padStart(2, '0')}`;
+  for (const circuitConfig of circuitConfigs) {
+    const circuitName = circuitConfigToName(circuitConfig);
     const circuitPath = `./src/generated/${circuitName}.circom`;
 
     // Create tests for circuit
     describe(circuitName, () => {
       let circuit;
       let originalInputs;
-      
+
       before(async () => {
-        if (!vectors.testInputs[circuitName]) throw new Error(`Inputs for ${circuitName} not found in vectors`);
+        if (!vectors.testInputs[circuitName])
+          throw new Error(`Inputs for ${circuitName} not found in vectors`);
         originalInputs = formatCircuitInputs(vectors.testInputs[circuitName]);
         circuit = await tester(circuitPath, { reduceConstraints: false });
       });
@@ -45,108 +47,143 @@ describe('Joinsplit', () => {
         await circuit.checkConstraints(witness);
       });
 
-      it('Should fail when merkleRoot is incorrect', async () => {
-        const mutated = { ...originalInputs, merkleRoot: originalInputs.merkleRoot + 1n };
-        await assert.rejects(() => circuit.calculateWitness(mutated));
-      });
-
-      it('Should fail when boundParamsHash is incorrect', async () => {
-        const mutated = { ...originalInputs, boundParamsHash: originalInputs.boundParamsHash + 1n };
-        await assert.rejects(() => circuit.calculateWitness(mutated));
-      });
-
-      it('Should fail when nullifiers is incorrect', async () => {
+      it("Should fail when merkleRoot is incorrect", async () => {
         const mutated = {
           ...originalInputs,
-          nullifiers: [...originalInputs.nullifiers.slice(0, -1), originalInputs.nullifiers.at(-1) + 1n],
+          merkleRoot: originalInputs.merkleRoot + 1n,
         };
         await assert.rejects(() => circuit.calculateWitness(mutated));
       });
 
-      it('Should fail when commitmentsOut is incorrect', async () => {
+      it("Should fail when boundParamsHash is incorrect", async () => {
         const mutated = {
           ...originalInputs,
-          commitmentsOut: [...originalInputs.commitmentsOut.slice(0, -1), originalInputs.commitmentsOut.at(-1) + 1n],
+          boundParamsHash: originalInputs.boundParamsHash + 1n,
         };
         await assert.rejects(() => circuit.calculateWitness(mutated));
       });
 
-      it('Should fail when token is incorrect', async () => {
+      it("Should fail when nullifiers is incorrect", async () => {
+        const mutated = {
+          ...originalInputs,
+          nullifiers: [
+            ...originalInputs.nullifiers.slice(0, -1),
+            originalInputs.nullifiers.at(-1) + 1n,
+          ],
+        };
+        await assert.rejects(() => circuit.calculateWitness(mutated));
+      });
+
+      it("Should fail when commitmentsOut is incorrect", async () => {
+        const mutated = {
+          ...originalInputs,
+          commitmentsOut: [
+            ...originalInputs.commitmentsOut.slice(0, -1),
+            originalInputs.commitmentsOut.at(-1) + 1n,
+          ],
+        };
+        await assert.rejects(() => circuit.calculateWitness(mutated));
+      });
+
+      it("Should fail when token is incorrect", async () => {
         const mutated = { ...originalInputs, token: originalInputs.token + 1n };
         await assert.rejects(() => circuit.calculateWitness(mutated));
       });
 
-      it('Should fail when publicKey is incorrect', async () => {
+      it("Should fail when publicKey is incorrect", async () => {
         const mutated = {
           ...originalInputs,
-          publicKey: [...originalInputs.publicKey.slice(0, -1), originalInputs.publicKey.at(-1) + 1n],
+          publicKey: [
+            ...originalInputs.publicKey.slice(0, -1),
+            originalInputs.publicKey.at(-1) + 1n,
+          ],
         };
         await assert.rejects(() => circuit.calculateWitness(mutated));
       });
 
-      it('Should fail when signature is incorrect', async () => {
+      it("Should fail when signature is incorrect", async () => {
         const mutated = {
           ...originalInputs,
-          signature: [...originalInputs.signature.slice(0, -1), originalInputs.signature.at(-1) + 1n],
+          signature: [
+            ...originalInputs.signature.slice(0, -1),
+            originalInputs.signature.at(-1) + 1n,
+          ],
         };
         await assert.rejects(() => circuit.calculateWitness(mutated));
       });
 
-      it('Should fail when randomIn is incorrect', async () => {
+      it("Should fail when randomIn is incorrect", async () => {
         const mutated = {
           ...originalInputs,
-          randomIn: [...originalInputs.randomIn.slice(0, -1), originalInputs.randomIn.at(-1) + 1n],
+          randomIn: [
+            ...originalInputs.randomIn.slice(0, -1),
+            originalInputs.randomIn.at(-1) + 1n,
+          ],
         };
         await assert.rejects(() => circuit.calculateWitness(mutated));
       });
 
-      it('Should fail when valueIn is incorrect', async () => {
+      it("Should fail when valueIn is incorrect", async () => {
         const mutated = {
           ...originalInputs,
-          valueIn: [...originalInputs.valueIn.slice(0, -1), originalInputs.valueIn.at(-1) + 1n],
+          valueIn: [
+            ...originalInputs.valueIn.slice(0, -1),
+            originalInputs.valueIn.at(-1) + 1n,
+          ],
         };
         await assert.rejects(() => circuit.calculateWitness(mutated));
       });
 
-      it('Should fail when pathElements is incorrect', async () => {
+      it("Should fail when pathElements is incorrect", async () => {
         const mutated = {
           ...originalInputs,
           pathElements: originalInputs.pathElements.map((pe, i) =>
-            i === 0 ? [...pe.slice(0, -1), pe.at(-1) + 1n] : pe
+            i === 0 ? [...pe.slice(0, -1), pe.at(-1) + 1n] : pe,
           ),
         };
         await assert.rejects(() => circuit.calculateWitness(mutated));
       });
 
-      it('Should fail when leavesIndices is incorrect', async () => {
+      it("Should fail when leavesIndices is incorrect", async () => {
         const mutated = {
           ...originalInputs,
-          leavesIndices: [...originalInputs.leavesIndices.slice(0, -1), originalInputs.leavesIndices.at(-1) + 1n],
+          leavesIndices: [
+            ...originalInputs.leavesIndices.slice(0, -1),
+            originalInputs.leavesIndices.at(-1) + 1n,
+          ],
         };
         await assert.rejects(() => circuit.calculateWitness(mutated));
       });
 
-      it('Should fail when nullifyingKey is incorrect', async () => {
-        const mutated = { ...originalInputs, nullifyingKey: originalInputs.nullifyingKey + 1n };
-        await assert.rejects(() => circuit.calculateWitness(mutated));
-      });
-
-      it('Should fail when npkOut is incorrect', async () => {
+      it("Should fail when nullifyingKey is incorrect", async () => {
         const mutated = {
           ...originalInputs,
-          npkOut: [...originalInputs.npkOut.slice(0, -1), originalInputs.npkOut.at(-1) + 1n],
+          nullifyingKey: originalInputs.nullifyingKey + 1n,
         };
         await assert.rejects(() => circuit.calculateWitness(mutated));
       });
 
-      it('Should fail when valueOut is incorrect', async () => {
+      it("Should fail when npkOut is incorrect", async () => {
         const mutated = {
           ...originalInputs,
-          valueOut: [...originalInputs.valueOut.slice(0, -1), originalInputs.valueOut.at(-1) + 1n],
+          npkOut: [
+            ...originalInputs.npkOut.slice(0, -1),
+            originalInputs.npkOut.at(-1) + 1n,
+          ],
         };
         await assert.rejects(() => circuit.calculateWitness(mutated));
       });
-    })
 
+      it("Should fail when valueOut is incorrect", async () => {
+        const mutated = {
+          ...originalInputs,
+          valueOut: [
+            ...originalInputs.valueOut.slice(0, -1),
+            originalInputs.valueOut.at(-1) + 1n,
+          ],
+        };
+        await assert.rejects(() => circuit.calculateWitness(mutated));
+      });
+    });
   }
 });

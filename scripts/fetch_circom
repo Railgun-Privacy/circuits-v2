@@ -1,66 +1,73 @@
-#!/usr/bin/env bash
-set -euox pipefail
+#!/usr/bin/env node
+const os = require("node:os");
+const path = require("node:path");
+const process = require("node:process");
+const fs = require("node:fs/promises");
+const { pathExists, cliArguments, run } = require("../lib/shared.js");
 
-VERBOSE=0
-FORCE=0
+// Supported OSs list
+const supportedOSs = ["linux", "macos", "win32"];
 
-VERSION="2.0.6"
-INSTALL_DIR="./bin"
-CIRCOM_BIN="$INSTALL_DIR/circom"
+// Constants
+const INSTALL_DIR = path.join(__dirname, "../bin");
+const PLATFORM = os.platform();
+const VERSION = "2.0.6";
+const URL = (() => {
+  switch (PLATFORM) {
+    case "linux":
+      return `https://github.com/iden3/circom/releases/download/v${VERSION}/circom-linux-amd64`;
+    case "macos":
+      return `https://github.com/iden3/circom/releases/download/v${VERSION}/circom-macos-amd64`;
+    case "win32":
+      return `https://github.com/iden3/circom/releases/download/v${VERSION}/circom-windows-amd64.exe`;
+    default:
+      return "";
+  }
+})();
+const CIRCOM_BIN = (() => {
+  switch (PLATFORM) {
+    case "linux":
+      return path.join(INSTALL_DIR, "circom");
+    case "macos":
+      return path.join(INSTALL_DIR, "circom");
+    case "win32":
+      return path.join(INSTALL_DIR, "circom.exe");
+    default:
+      return "";
+  }
+})();
 
-OS="$(node -p 'os.platform()')"
+async function main() {
+  // Print help and exit if help flag
+  if (cliArguments()["help"]) {
+    console.log("Usage: ./scripts/fetch_circom [OPTIONS]");
+    console.log("Options:");
+    console.log("  --force     Force re-download of circom");
+    console.log("  --verbose   Enable verbose output");
+    console.log("  --help      Show this help message");
+    process.exit();
+  }
 
-print() {
-  if [ "$VERBOSE" -eq 1 ]; then
-    echo "$@"
-  fi
+  // Exit if not supported OS
+  if (!supportedOSs.includes(PLATFORM)) {
+    console.log(`OS ${PLATFORM} not supported`);
+    process.exit(1);
+  }
+
+  // Ensure install dir exists
+  if (!pathExists(INSTALL_DIR)) await fs.mkdir(INSTALL_DIR);
+
+  // Exit if already exists, ignore if force flag
+  if (pathExists(CIRCOM_BIN) && !cliArguments()["force"]) {
+    console.log(`Circom is already installed at ${CIRCOM_BIN}`);
+    process.exit();
+  }
+
+  // Download circom
+  console.log(`Downloading circom from: ${URL}`);
+  await run(`curl`, ["-L", URL, "-o", CIRCOM_BIN], cliArguments()["verbose"]);
+  await run(`chmod`, ["+x", CIRCOM_BIN], cliArguments()["verbose"]);
+  console.log(`Circom installed to ${CIRCOM_BIN}`);
 }
 
-for arg in "$@"; do
-  case "$arg" in
-  -v | --verbose)
-    VERBOSE=1
-    ;;
-  -f | --force)
-    FORCE=1
-    ;;
-  -h | --help)
-    echo "Usage: $0 [OPTIONS]"
-    echo "Options:"
-    echo "  -f, --force     Force re-download of circom"
-    echo "  -v, --verbose   Enable verbose output"
-    echo "  -h, --help      Show this help message"
-    exit 1
-    ;;
-  esac
-done
-
-mkdir -p "$INSTALL_DIR"
-
-if [ -f "$CIRCOM_BIN" ] && [ "$FORCE" -eq 0 ]; then
-  print "circom is already installed at $CIRCOM_BIN"
-  exit 0
-fi
-
-case "$OS" in
-linux)
-  URL="https://github.com/iden3/circom/releases/download/v${VERSION}/circom-linux-amd64"
-  ;;
-darwin)
-  URL="https://github.com/iden3/circom/releases/download/v${VERSION}/circom-macos-amd64"
-  ;;
-win32)
-  URL="https://github.com/iden3/circom/releases/download/v${VERSION}/circom-windows-amd64.exe"
-  CIRCOM_BIN="${CIRCOM_BIN}.exe"
-  ;;
-*)
-  echo "Unsupported OS: $OS"
-  exit 1
-  ;;
-esac
-
-print "Downloading circom from: $URL"
-curl -s -L "$URL" -o "$CIRCOM_BIN"
-chmod +x "$CIRCOM_BIN"
-
-print "circom installed to: $CIRCOM_BIN"
+void main();

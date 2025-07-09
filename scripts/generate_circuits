@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-const fs = require('node:fs');
-const path = require('node:path');
+const fs = require("node:fs/promises");
+const path = require("node:path");
+const circuitConfigs = require("../lib/circuitConfigs.js");
+const { pathExists } = require("../lib/shared.js");
 
-const circuitConfigs = require('../circuitConfigs');
+// Constants
+const GENERATED_DIR = path.join(__dirname, "../src/generated");
 
 // Circuit template
 function template(nInputs, nOutputs) {
@@ -13,22 +16,29 @@ component main{public [merkleRoot, boundParamsHash, nullifiers, commitmentsOut]}
 `;
 }
 
-// Calculate path to generated circuits directory
-const generatedDir = path.join(__dirname, '../src/generated');
+async function main() {
+  // Delete generated dir if exists
+  if (pathExists(GENERATED_DIR))
+    await fs.rm(GENERATED_DIR, { recursive: true, force: true });
 
-// Create generated circuits directory if not exist
-if (!fs.existsSync(generatedDir)) {
-  fs.mkdirSync(generatedDir);
+  // Create generated dir
+  await fs.mkdir(GENERATED_DIR);
+
+  for (const { commitments, nullifiers } of circuitConfigs) {
+    // Throw if trying to generate a circuit combination with more than max poseidon inputs for signature check
+    if (nullifiers + commitments + 2 + 1 > 17)
+      throw new Error("Invalid combination");
+
+    // Stringify nullifier and commitment counts
+    const nullifiersStr = nullifiers.toString().padStart(2, "0");
+    const commitmentsStr = commitments.toString().padStart(2, "0");
+
+    // Write generated circuit to file
+    await fs.writeFile(
+      path.join(GENERATED_DIR, `${nullifiersStr}x${commitmentsStr}.circom`),
+      template(nullifiers, commitments)
+    );
+  }
 }
 
-for (const { commitmentCount, nullifierCount } of circuitConfigs) {
-  // Throw if trying to generate a circuit combination with more than max poseidon inputs for signature check
-  if (nullifierCount + commitmentCount + 2 + 1 > 17) throw new Error('Invalid combination');
-
-  // Stringify nullifier and commitment counts
-  const nullifierCountStr = nullifierCount.toString().padStart(2, '0');
-  const commitmentCountStr = commitmentCount.toString().padStart(2, '0');
-
-  // Write generated circuit to file
-  fs.writeFileSync(path.join(generatedDir, `joinsplit_${nullifierCountStr}x${commitmentCountStr}.circom`), template(nullifierCount, commitmentCount));
-}
+void main();
