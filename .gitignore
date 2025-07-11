@@ -1,7 +1,7 @@
-node_modules
-build
-bin
-zkeys
-src/generated
-package
-ceremony-export
+/node_modules
+/build
+/bin
+/zkeys
+/src/generated
+/export
+/ceremony-export

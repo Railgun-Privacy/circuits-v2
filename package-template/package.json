@@ -1,5 +1,5 @@
 {
-  "name": "railgun-circuit-artifacts",
+  "name": "railgun-circuit-test-artifacts",
   "version": "0.0.1",
   "description": "Circuit artifacts for development/testing",
   "main": "index.js",

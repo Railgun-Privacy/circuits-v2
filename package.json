@@ -12,7 +12,7 @@
     "check": "npm run prebuild; ./scripts/check_circuits",
     "clean": "./scripts/clean",
     "ceremony": "npm run build; ./scripts/prepare_ceremony",
-    "export": "npm run build; ./scripts/generate_package"
+    "export": "npm run build; ./scripts/export"
   },
   "dependencies": {
     "circomlib": "2.0.5"

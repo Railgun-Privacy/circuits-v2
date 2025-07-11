@@ -12,7 +12,9 @@ const {
 // Constants
 const CEREMONY_EXPORT = path.join(__dirname, "../ceremony-export");
 const PACKAGE_TEMPLATE = path.join(__dirname, "../package-template");
-const PACKAGE_DIR = path.join(__dirname, "../package");
+const EXPORT_DIR = path.join(__dirname, "../export");
+const PACKAGE_DIR = path.join(EXPORT_DIR, "package");
+const PROVER_DIR = path.join(EXPORT_DIR, "prover");
 const BUILD_DIR = path.join(__dirname, "../build");
 
 async function main() {
@@ -22,11 +24,37 @@ async function main() {
     process.exit(1);
   }
 
-  // Remove package dir if exists
-  if (pathExists(PACKAGE_DIR))
-    await fs.rm(PACKAGE_DIR, { recursive: true, force: true });
+  // Remove export dir if exists
+  if (pathExists(EXPORT_DIR))
+    await fs.rm(EXPORT_DIR, { recursive: true, force: true });
+
+  // Make snarkjs prover directory (recursively creating export dir)
+  console.log("\nCREATING PROVER EXPORT DIRECTORY");
+  await fs.mkdir(path.join(PROVER_DIR, "snarkjs"), { recursive: true });
+
+  // Loop through each circuit and assemble compression tasks
+  const compressionQueue = [];
+  for (const circuitConfig of circuitConfigs) {
+    const name = circuitConfigToName(circuitConfig);
+
+    // Add wasm file compression to queue
+    compressionQueue.push(() => {
+      console.log(`Compressing ${name}.wasm`);
+      return runWorker.parent(
+        path.join(__dirname, "child_process/compress_file.js"),
+        {
+          source: path.join(BUILD_DIR, `${name}_js/${name}.wasm`),
+          destination: path.join(PROVER_DIR, `snarkjs/${name}.wasm.br`),
+        }
+      );
+    });
+  }
+
+  console.log("\nCOMPRESSING WASM");
+  await processParallel(compressionQueue);
 
   // Copy package template
+  console.log("COPYING PACKAGE TEMPLATE TO EXPORT DIRECTORY");
   await fs.cp(PACKAGE_TEMPLATE, PACKAGE_DIR, { recursive: true });
 
   // Copy circuit configs
@@ -39,7 +67,7 @@ async function main() {
   // Create circuits folder
   await fs.mkdir(path.join(PACKAGE_DIR, "circuits"));
 
-  const compressionQueue = [];
+  console.log("\nASSEMBLING PACKAGE");
 
   // Loop through each circuit
   for (const circuitConfig of circuitConfigs) {
@@ -48,9 +76,8 @@ async function main() {
     // Create circuit folder
     await fs.mkdir(path.join(PACKAGE_DIR, "circuits", name));
 
-    console.log(`Copying zkey and vkey for ${name}`);
-
-    // Copy zkey and vkey
+    // Copy zkey, vkey, and wasm
+    console.log(`Copying zkey, vkey, and wasm for ${name}`);
     await fs.cp(
       path.join(CEREMONY_EXPORT, "circuits", name, "zkey.br"),
       path.join(PACKAGE_DIR, "circuits", name, "zkey.br")
@@ -59,22 +86,11 @@ async function main() {
       path.join(CEREMONY_EXPORT, "circuits", name, "vkey.json"),
       path.join(PACKAGE_DIR, "circuits", name, "vkey.json")
     );
-
-    // Add wasm to compression queue
-    compressionQueue.push(() => {
-      console.log(`Compressing ${name}.wasm`);
-      return runWorker.parent(
-        path.join(__dirname, "child_process/compress_file.js"),
-        {
-          source: path.join(BUILD_DIR, `${name}_js/${name}.wasm`),
-          destination: path.join(PACKAGE_DIR, "circuits", name, "wasm.br"),
-        }
-      );
-    });
+    await fs.cp(
+      path.join(PROVER_DIR, `snarkjs/${name}.wasm.br`),
+      path.join(PACKAGE_DIR, "circuits", name, "wasm.br")
+    );
   }
-
-  console.log("\nCOMPRESSING WASM");
-  await processParallel(compressionQueue);
 }
 
 void main();
