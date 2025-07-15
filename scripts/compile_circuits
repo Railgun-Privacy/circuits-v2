@@ -57,7 +57,7 @@ async function main() {
     }
 
     // Compile
-    console.log(`COMPILING ${name}`);
+    console.log(`\nCOMPILING ${name}`);
     const output = await run(
       CIRCOM_BIN,
       [
@@ -71,11 +71,12 @@ async function main() {
         "--output",
         BUILD_DIR,
       ],
+      undefined,
       false
     );
 
     // Output to console
-    console.log(`COMPILED ${name}`);
+    console.log(`\nCOMPILED ${name}`);
     output.output
       .filter((line) => line !== null && line !== undefined)
       .forEach((line) => process.stdin.write(line));

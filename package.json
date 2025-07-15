@@ -11,7 +11,7 @@
     "test": "PATH=./bin:$PATH mocha --exit --timeout 600000",
     "check": "npm run prebuild; ./scripts/check_circuits",
     "clean": "./scripts/clean",
-    "ceremony": "npm run build; ./scripts/prepare_ceremony",
+    "ceremony": "npm run build; ./scripts/prepare_ceremony --verbose",
     "export": "npm run build; ./scripts/export"
   },
   "dependencies": {

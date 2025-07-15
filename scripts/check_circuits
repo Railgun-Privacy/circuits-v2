@@ -27,11 +27,12 @@ async function main() {
   const queue = circuitConfigs.map((circuit) => async () => {
     const name = circuitConfigToName(circuit);
 
-    console.log(`CHECKING ${name}`);
+    console.log(`\nCHECKING ${name}`);
 
     const output = await run(
       CIRCOM_BIN,
       [path.join(GENERATED_DIR, `${name}.circom`)],
+      undefined,
       false
     );
 

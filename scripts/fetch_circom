@@ -65,8 +65,13 @@ async function main() {
 
   // Download circom
   console.log(`Downloading circom from: ${URL}`);
-  await run(`curl`, ["-L", URL, "-o", CIRCOM_BIN], cliArguments()["verbose"]);
-  await run(`chmod`, ["+x", CIRCOM_BIN], cliArguments()["verbose"]);
+  await run(
+    `curl`,
+    ["-L", URL, "-o", CIRCOM_BIN],
+    undefined,
+    cliArguments()["verbose"]
+  );
+  await run(`chmod`, ["+x", CIRCOM_BIN], undefined, cliArguments()["verbose"]);
   console.log(`Circom installed to ${CIRCOM_BIN}`);
 }
 
