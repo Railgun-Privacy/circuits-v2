@@ -28,9 +28,10 @@ async function main() {
   if (pathExists(EXPORT_DIR))
     await fs.rm(EXPORT_DIR, { recursive: true, force: true });
 
-  // Make snarkjs prover directory (recursively creating export dir)
+  // Make snarkjs and native prover directory (recursively creating export dir)
   console.log("\nCREATING PROVER EXPORT DIRECTORY");
   await fs.mkdir(path.join(PROVER_DIR, "snarkjs"), { recursive: true });
+  await fs.mkdir(path.join(PROVER_DIR, "native"), { recursive: true });
 
   // Loop through each circuit and assemble compression tasks
   const compressionQueue = [];
@@ -48,9 +49,21 @@ async function main() {
         }
       );
     });
+
+    // Add dat file compression to queue
+    compressionQueue.push(() => {
+      console.log(`Compressing ${name}.dat`);
+      return runWorker.parent(
+        path.join(__dirname, "child_process/compress_file.js"),
+        {
+          source: path.join(BUILD_DIR, `${name}_cpp/${name}.dat`),
+          destination: path.join(PROVER_DIR, `native/${name}.dat.br`),
+        }
+      );
+    });
   }
 
-  console.log("\nCOMPRESSING WASM");
+  console.log("\nCOMPRESSING FILES");
   await processParallel(compressionQueue);
 
   // Copy package template
