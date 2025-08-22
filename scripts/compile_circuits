@@ -19,7 +19,7 @@ const CIRCOM_BIN = (() => {
   switch (PLATFORM) {
     case "linux":
       return path.join(INSTALL_DIR, "circom");
-    case "macos":
+    case "darwin":
       return path.join(INSTALL_DIR, "circom");
     case "win32":
       return path.join(INSTALL_DIR, "circom.exe");
